@@ -2,9 +2,11 @@ package com.quickcart.backend.service;
 
 import com.quickcart.backend.dto.CreateProductRequest;
 import com.quickcart.backend.dto.ProductResponse;
+import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.entity.Product;
 import com.quickcart.backend.entity.ProductStatus;
 import com.quickcart.backend.entity.User;
+import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -66,4 +68,35 @@ public class ProductService {
                 .manufacturerName(product.getManufacturer().getName())
                 .build();
     }
+
+    public void updateProduct(
+            Long productId,
+            UpdateProductRequest request,
+            User manufacturer
+    ) {
+        Product product = productRepository
+                .findByIdAndManufacturer(productId, manufacturer)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Product", "id", productId
+                ));
+
+        product.setName(request.getName());
+        product.setDescription(request.getDescription());
+        product.setPrice(request.getPrice());
+        product.setStock(request.getStock());
+
+        productRepository.save(product);
+    }
+
+    public void deactivateProduct(Long productId, User manufacturer) {
+        Product product = productRepository
+                .findByIdAndManufacturer(productId, manufacturer)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Product", "id", productId
+                ));
+
+        product.setStatus(ProductStatus.INACTIVE);
+        productRepository.save(product);
+    }
+
 }

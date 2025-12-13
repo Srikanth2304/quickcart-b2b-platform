@@ -2,6 +2,7 @@ package com.quickcart.backend.controller;
 
 import com.quickcart.backend.dto.CreateProductRequest;
 import com.quickcart.backend.dto.ProductResponse;
+import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.security.CustomUserDetails;
 import com.quickcart.backend.service.ProductService;
 import jakarta.validation.Valid;
@@ -40,4 +41,27 @@ public class ProductController {
                 productService.getProductsForUser(currentUser.getUser())
         );
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('MANUFACTURER')")
+    public ResponseEntity<String> updateProduct(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdateProductRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        productService.updateProduct(id, request, currentUser.getUser());
+        return ResponseEntity.ok("Product updated successfully");
+    }
+
+    @PatchMapping("/{id}/deactivate")
+    @PreAuthorize("hasRole('MANUFACTURER')")
+    public ResponseEntity<String> deactivateProduct(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        productService.deactivateProduct(id, currentUser.getUser());
+        return ResponseEntity.ok("Product deactivated successfully");
+    }
+
+
 }

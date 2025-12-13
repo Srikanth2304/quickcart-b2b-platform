@@ -5,7 +5,7 @@ import com.quickcart.backend.entity.ProductStatus;
 import com.quickcart.backend.entity.User;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
-
+import java.util.Optional;
 import java.util.List;
 
 public interface ProductRepository extends JpaRepository<Product, Long> {
@@ -17,4 +17,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     // Retailer view - eagerly fetch manufacturer to avoid LazyInitializationException
     @EntityGraph(attributePaths = {"manufacturer"})
     List<Product> findByStatus(ProductStatus status);
+
+    Optional<Product> findByIdAndManufacturer(Long id, User manufacturer);
 }
