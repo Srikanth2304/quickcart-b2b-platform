@@ -30,6 +30,15 @@ spring:
     serialization:
       FAIL_ON_EMPTY_BEANS: false
 
+# JWT Security Configuration
+security:
+  jwt:
+    # Secret key for signing JWT tokens (minimum 256 bits for HS256)
+    # In production, use environment variables or secure vault
+    secret: quickcart_b2b_platform_secret_key_for_jwt_token_generation_2024
+    # Token expiration time in milliseconds (10 hours)
+    expiration: 36000000
+
 logging:
   level:
     org.hibernate.SQL: DEBUG
