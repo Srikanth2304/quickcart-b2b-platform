@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
+import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
@@ -59,6 +60,17 @@ public class JwtUtil {
      */
     public String extractUsername(String token) {
         return getClaims(token).getSubject();
+    }
+
+    /**
+     * Extracts roles from the JWT token.
+     *
+     * @param token JWT token
+     * @return list of role names
+     */
+    public List<String> extractRoles(String token) {
+        Claims claims = getClaims(token);
+        return claims.get("roles", List.class);
     }
 
     /**
