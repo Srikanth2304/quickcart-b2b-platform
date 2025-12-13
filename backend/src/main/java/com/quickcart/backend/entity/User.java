@@ -46,4 +46,15 @@ public class User {
             inverseJoinColumns = @JoinColumn(name = "role_id")
     )
     private Set<Role> roles = new HashSet<>();
+
+    /**
+     * Helper method to check if user has a specific role.
+     *
+     * @param roleName the role name to check (e.g., "MANUFACTURER", "RETAILER")
+     * @return true if user has the role, false otherwise
+     */
+    public boolean hasRole(String roleName) {
+        return roles.stream()
+                .anyMatch(role -> role.getName().equals(roleName));
+    }
 }

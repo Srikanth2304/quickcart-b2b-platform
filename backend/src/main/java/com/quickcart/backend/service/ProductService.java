@@ -6,6 +6,7 @@ import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.entity.Product;
 import com.quickcart.backend.entity.ProductStatus;
 import com.quickcart.backend.entity.User;
+import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -74,11 +75,15 @@ public class ProductService {
             UpdateProductRequest request,
             User manufacturer
     ) {
+        // First check if product exists
         Product product = productRepository
-                .findByIdAndManufacturer(productId, manufacturer)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Product", "id", productId
-                ));
+                .findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
+
+        // Then check if manufacturer owns the product
+        if (!product.getManufacturer().getId().equals(manufacturer.getId())) {
+            throw new AccessDeniedException("Product", productId);
+        }
 
         product.setName(request.getName());
         product.setDescription(request.getDescription());
@@ -89,11 +94,15 @@ public class ProductService {
     }
 
     public void deactivateProduct(Long productId, User manufacturer) {
+        // First check if product exists
         Product product = productRepository
-                .findByIdAndManufacturer(productId, manufacturer)
-                .orElseThrow(() -> new ResourceNotFoundException(
-                    "Product", "id", productId
-                ));
+                .findById(productId)
+                .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
+
+        // Then check if manufacturer owns the product
+        if (!product.getManufacturer().getId().equals(manufacturer.getId())) {
+            throw new AccessDeniedException("Product", productId);
+        }
 
         product.setStatus(ProductStatus.INACTIVE);
         productRepository.save(product);

@@ -56,4 +56,31 @@ public class Product {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    /**
+     * Helper method to check if product is active.
+     *
+     * @return true if product status is ACTIVE, false otherwise
+     */
+    public boolean isActive() {
+        return this.status == ProductStatus.ACTIVE;
+    }
+
+    /**
+     * Alias for getStock() for backward compatibility.
+     *
+     * @return stock quantity
+     */
+    public Integer getStockQuantity() {
+        return this.stock;
+    }
+
+    /**
+     * Alias for setStock() for backward compatibility.
+     *
+     * @param stockQuantity the stock quantity to set
+     */
+    public void setStockQuantity(Integer stockQuantity) {
+        this.stock = stockQuantity;
+    }
 }
