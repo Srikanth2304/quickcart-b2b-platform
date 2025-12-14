@@ -1,5 +1,6 @@
 package com.quickcart.backend.exception;
 
+import com.quickcart.backend.dto.ErrorCode;
 import com.quickcart.backend.dto.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -37,7 +38,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.EMAIL_ALREADY_EXISTS.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -58,7 +60,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.NOT_FOUND.value(),
                 "Not Found",
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.RESOURCE_NOT_FOUND.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
@@ -79,7 +82,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
                 "You do not have permission to access this resource",
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.FORBIDDEN.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
@@ -100,10 +104,77 @@ public class GlobalExceptionHandler {
                 HttpStatus.FORBIDDEN.value(),
                 "Forbidden",
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.FORBIDDEN.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    /**
+     * Handles OrderAccessDeniedException.
+     * Returns 403 FORBIDDEN when user tries to access or pay for an order they don't own.
+     */
+    @ExceptionHandler(com.quickcart.backend.exception.OrderAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleOrderAccessDenied(
+            com.quickcart.backend.exception.OrderAccessDeniedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Order access denied: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.ORDER_ACCESS_DENIED.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    /**
+     * Handles DuplicatePaymentException.
+     * Returns 409 CONFLICT when attempting to create a payment for an order that already has one.
+     */
+    @ExceptionHandler(com.quickcart.backend.exception.DuplicatePaymentException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicatePayment(
+            com.quickcart.backend.exception.DuplicatePaymentException ex,
+            HttpServletRequest request) {
+
+        log.warn("Duplicate payment attempt: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.ORDER_ALREADY_PAID.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handles InvalidOrderStatusException.
+     * Returns 400 BAD REQUEST when attempting to pay for an order with invalid status.
+     */
+    @ExceptionHandler(com.quickcart.backend.exception.InvalidOrderStatusException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidOrderStatus(
+            com.quickcart.backend.exception.InvalidOrderStatusException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid order status for payment: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.INVALID_ORDER_STATUS.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 
     /**
@@ -121,7 +192,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad Request",
                 ex.getMessage(),
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.INSUFFICIENT_STOCK.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -146,7 +218,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.BAD_REQUEST.value(),
                 "Validation Failed",
                 errorMessage,
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.VALIDATION_FAILED.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
@@ -167,7 +240,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.UNAUTHORIZED.value(),
                 "Unauthorized",
                 "Invalid email or password",
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.UNAUTHORIZED.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
@@ -188,7 +262,8 @@ public class GlobalExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal Server Error",
                 "An unexpected error occurred. Please try again later.",
-                request.getRequestURI()
+                request.getRequestURI(),
+                ErrorCode.INTERNAL_SERVER_ERROR.getCode()
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);

@@ -16,6 +16,7 @@ public class ErrorResponse {
     private String error;
     private String message;
     private String path;
+    private String code;
 
     public ErrorResponse(int status, String error, String message, String path) {
         this.timestamp = LocalDateTime.now();
@@ -23,6 +24,15 @@ public class ErrorResponse {
         this.error = error;
         this.message = message;
         this.path = path;
+        this.code = null;
+    }
+
+    public ErrorResponse(int status, String error, String message, String path, String code) {
+        this.timestamp = LocalDateTime.now();
+        this.status = status;
+        this.error = error;
+        this.message = message;
+        this.path = path;
+        this.code = code;
     }
 }
-
