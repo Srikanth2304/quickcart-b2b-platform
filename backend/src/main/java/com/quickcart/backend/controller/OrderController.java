@@ -8,12 +8,12 @@ import com.quickcart.backend.service.OrderQueryService;
 import com.quickcart.backend.service.OrderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/orders")
@@ -33,12 +33,19 @@ public class OrderController {
         return ResponseEntity.ok("Order placed successfully");
     }
 
+    /**
+     * ✅ PAGINATED ORDERS
+     */
     @GetMapping
-    public ResponseEntity<List<OrderResponse>> getOrders(
-            @AuthenticationPrincipal CustomUserDetails currentUser
+    public ResponseEntity<Page<OrderResponse>> getOrders(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            Pageable pageable
     ) {
         return ResponseEntity.ok(
-                orderQueryService.getOrders(currentUser.getUser())
+                orderQueryService.getOrders(
+                        currentUser.getUser(),
+                        pageable
+                )
         );
     }
 
@@ -66,5 +73,4 @@ public class OrderController {
         );
         return ResponseEntity.ok("Order status updated successfully");
     }
-
 }

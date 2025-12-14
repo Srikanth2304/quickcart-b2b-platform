@@ -5,6 +5,7 @@ import com.quickcart.backend.entity.*;
 import com.quickcart.backend.exception.DuplicatePaymentException;
 import com.quickcart.backend.exception.InvalidOrderStatusException;
 import com.quickcart.backend.exception.OrderAccessDeniedException;
+import com.quickcart.backend.repository.InvoiceRepository;
 import com.quickcart.backend.repository.OrderRepository;
 import com.quickcart.backend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ public class PaymentService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final InvoiceRepository invoiceRepository;
 
     @Transactional
     public void makePayment(PaymentRequest request, User retailer) {
@@ -60,5 +62,14 @@ public class PaymentService {
 
         // Update order status to CONFIRMED after successful payment
         order.setStatus(OrderStatus.CONFIRMED);
+
+        // AUTO-GENERATE INVOICE (ONE PER ORDER)
+        Invoice invoice = Invoice.builder()
+                .order(order)
+                .retailer(retailer)
+                .amount(order.getTotalAmount())
+                .build();
+
+        invoiceRepository.save(invoice);
     }
 }

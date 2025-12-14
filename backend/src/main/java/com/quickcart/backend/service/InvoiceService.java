@@ -5,6 +5,9 @@ import com.quickcart.backend.entity.Invoice;
 import com.quickcart.backend.entity.User;
 import com.quickcart.backend.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,20 +19,30 @@ public class InvoiceService {
     private final InvoiceRepository invoiceRepository;
 
     /**
-     * Fetch invoices for a retailer and map to response DTOs.
-     * Prevents lazy initialization errors by mapping entities to DTOs
-     * before the Hibernate session is closed.
+     * Fetch paginated invoices for a retailer and map to response DTOs.
+     * Repository eagerly loads all required relationships with JOIN FETCH.
+     * Mapping to DTOs happens while Hibernate session is still active.
      */
-    public List<InvoiceResponse> getInvoicesForRetailer(User retailer) {
-        List<Invoice> invoices = invoiceRepository.findByRetailer(retailer);
-        return invoices.stream()
+    public Page<InvoiceResponse> getInvoicesForRetailer(User retailer, Pageable pageable) {
+        Page<Invoice> invoicesPage = invoiceRepository.findByRetailer(retailer, pageable);
+
+        // Map all invoices to DTOs while session is active
+        List<InvoiceResponse> invoiceResponses = invoicesPage.getContent()
+                .stream()
                 .map(this::mapToResponse)
                 .toList();
+
+        // Return Page with mapped DTOs
+        return new PageImpl<>(
+                invoiceResponses,
+                invoicesPage.getPageable(),
+                invoicesPage.getTotalElements()
+        );
     }
 
     /**
      * Map Invoice entity to InvoiceResponse DTO.
-     * Extracts only necessary fields to avoid lazy loading issues.
+     * All relationships are already eagerly loaded by the repository.
      */
     private InvoiceResponse mapToResponse(Invoice invoice) {
         return InvoiceResponse.builder()

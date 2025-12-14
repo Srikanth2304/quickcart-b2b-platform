@@ -10,6 +10,8 @@ import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -20,14 +22,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
 
-    /**
-     * Creates a new product associated with the manufacturer.
-     *
-     * @param request the product creation request
-     * @param manufacturer the authenticated manufacturer user
-     * @return the created product
-     */
-    public Product createProduct(CreateProductRequest request, User manufacturer) {
+    public void createProduct(CreateProductRequest request, User manufacturer) {
         Product product = Product.builder()
                 .name(request.getName())
                 .description(request.getDescription())
@@ -37,26 +32,33 @@ public class ProductService {
                 .manufacturer(manufacturer)
                 .build();
 
-        return productRepository.save(product);
+        productRepository.save(product);
     }
 
-    public List<ProductResponse> getProductsForUser(User user) {
+    public Page<ProductResponse> getProductsForUser(User user, Pageable pageable) {
 
-        List<Product> products;
+        Page<Product> products;
 
-        boolean isManufacturer = user.getRoles().stream()
-                .anyMatch(role -> role.getName().equals("MANUFACTURER"));
+        boolean isManufacturer = user.hasRole("MANUFACTURER");
 
         if (isManufacturer) {
-            products = productRepository.findByManufacturer(user);
+            products = productRepository.findByManufacturer(user, pageable);
         } else {
-            products = productRepository.findByStatus(ProductStatus.ACTIVE);
+            products = productRepository.findByStatus(ProductStatus.ACTIVE, pageable);
         }
 
-        return products.stream()
-                .map(this::mapToResponse)
-                .toList();
+        return products.map(product -> ProductResponse.builder()
+                .id(product.getId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
+                .stock(product.getStock())
+                .status(product.getStatus().name())
+                .manufacturerName(product.getManufacturer().getName())
+                .build()
+        );
     }
+
 
     private ProductResponse mapToResponse(Product product) {
         return ProductResponse.builder()
@@ -70,17 +72,10 @@ public class ProductService {
                 .build();
     }
 
-    public void updateProduct(
-            Long productId,
-            UpdateProductRequest request,
-            User manufacturer
-    ) {
-        // First check if product exists
-        Product product = productRepository
-                .findById(productId)
+    public void updateProduct(Long productId, UpdateProductRequest request, User manufacturer) {
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
 
-        // Then check if manufacturer owns the product
         if (!product.getManufacturer().getId().equals(manufacturer.getId())) {
             throw new AccessDeniedException("Product", productId);
         }
@@ -94,12 +89,9 @@ public class ProductService {
     }
 
     public void deactivateProduct(Long productId, User manufacturer) {
-        // First check if product exists
-        Product product = productRepository
-                .findById(productId)
+        Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "id", productId));
 
-        // Then check if manufacturer owns the product
         if (!product.getManufacturer().getId().equals(manufacturer.getId())) {
             throw new AccessDeniedException("Product", productId);
         }
@@ -107,5 +99,4 @@ public class ProductService {
         product.setStatus(ProductStatus.INACTIVE);
         productRepository.save(product);
     }
-
 }
