@@ -95,4 +95,24 @@ public class OrderService {
 
         orderRepository.save(order);
     }
+
+    @Transactional
+    public void updateOrderStatus(Long orderId, OrderStatus newStatus, User manufacturer) {
+
+        if (!manufacturer.hasRole("MANUFACTURER")) {
+            throw new AccessDeniedException("Only manufacturers can update order status");
+        }
+
+        Order order = orderRepository.findByIdAndManufacturer(orderId, manufacturer)
+                .orElseThrow(() -> new AccessDeniedException("Order", orderId));
+
+        // Basic validation (can be expanded later)
+        if (order.getStatus() == OrderStatus.CANCELLED ||
+                order.getStatus() == OrderStatus.DELIVERED) {
+            throw new AccessDeniedException("Order status cannot be updated");
+        }
+
+        order.setStatus(newStatus);
+    }
+
 }
