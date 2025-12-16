@@ -1,20 +1,38 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import ManufacturerDashboard from "./pages/ManufacturerDashboard";
 import RetailerDashboard from "./pages/RetailerDashboard";
-import { AuthProvider } from "./auth/AuthContext";
+import ProtectedRoute from "./routes/ProtectedRoute";
 
 function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/manufacturer" element={<ManufacturerDashboard />} />
-          <Route path="/retailer" element={<RetailerDashboard />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+    <Routes>
+      {/* Default route */}
+      <Route path="/" element={<Navigate to="/login" replace />} />
+
+      {/* Public */}
+      <Route path="/login" element={<Login />} />
+
+      {/* Manufacturer */}
+      <Route
+        path="/manufacturer"
+        element={
+          <ProtectedRoute allowedRoles={["MANUFACTURER"]}>
+            <ManufacturerDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Retailer */}
+      <Route
+        path="/retailer"
+        element={
+          <ProtectedRoute allowedRoles={["RETAILER"]}>
+            <RetailerDashboard />
+          </ProtectedRoute>
+        }
+      />
+    </Routes>
   );
 }
 
