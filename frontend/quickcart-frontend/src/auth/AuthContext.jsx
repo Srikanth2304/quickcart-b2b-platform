@@ -1,10 +1,21 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import api from "../api/axios";
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+
+  // Restore user from localStorage on app load
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const role = localStorage.getItem("role");
+    const email = localStorage.getItem("email");
+    
+    if (token && role && email) {
+      setUser({ email, role });
+    }
+  }, []);
 
   const login = async (email, password) => {
     // Call backend login API
@@ -20,6 +31,7 @@ export function AuthProvider({ children }) {
     // Store in localStorage
     localStorage.setItem("token", token);
     localStorage.setItem("role", role);
+    localStorage.setItem("email", email);
 
     // Update auth state
     setUser({ email, role });

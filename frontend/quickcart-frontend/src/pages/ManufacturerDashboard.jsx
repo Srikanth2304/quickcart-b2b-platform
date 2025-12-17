@@ -1,3 +1,7 @@
 export default function ManufacturerDashboard() {
-  return <h2>Manufacturer Dashboard</h2>;
+  return (
+    <div className="dashboard-page" style={{ paddingTop: "120px" }}>
+      <h2>Manufacturer Dashboard</h2>
+    </div>
+  );
 }

@@ -1,8 +1,29 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
   text-align: center;
+  width: 100%;
+  background: #ffffff;
+}
+
+/* Dashboard pages - light mode styling */
+.dashboard-page {
+  background-color: #ffffff !important;
+  min-height: 100vh;
+  color: #000;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.dashboard-page h1,
+.dashboard-page h2,
+.dashboard-page h3,
+.dashboard-page h4,
+.dashboard-page h5,
+.dashboard-page h6 {
+  color: #000 !important;
 }
 
 .logo {

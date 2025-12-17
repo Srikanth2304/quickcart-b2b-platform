@@ -84,8 +84,9 @@ export default function Login() {
 
 
   return (
-    <div className="login-container">
-      <div className="login-wrapper">
+    <div className="login-page">
+      <div className="login-container">
+        <div className="login-wrapper">
         {/* Brand Section */}
         <div className="brand-section">
           <div className="brand-logo">
@@ -237,6 +238,7 @@ export default function Login() {
           <div className="signup-link">
             Don't have an account? <a href="#">Create one now</a>
           </div>
+        </div>
         </div>
       </div>
     </div>
