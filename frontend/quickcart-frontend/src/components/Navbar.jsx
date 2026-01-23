@@ -2,6 +2,9 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useState } from "react";
 import logo from "../logos/logo1.svg";
+import avatarIcon from "../logos/avatar.svg";
+import heartIcon from "../logos/heart.svg";
+import cartIcon from "../logos/shopping-cart.svg";
 import "./Navbar.css";
 
 export default function Navbar() {
@@ -114,23 +117,40 @@ export default function Navbar() {
         <div className="right-section">
           {/* Profile Section with Dropdown */}
           <div
-            className="profile-section"
+            className="nav-icon-item profile-section"
             onMouseEnter={() => setDropdownOpen(true)}
             onMouseLeave={() => setDropdownOpen(false)}
           >
             <div className="profile-trigger">
-              <div className="profile-info">
-                <div className="profile-email">{user.email}</div>
-                <div className="profile-role">{user.role}</div>
-              </div>
-              <span className="dropdown-arrow">▼</span>
+              <img src={avatarIcon} alt="Profile" className="nav-icon" />
+              <span className="nav-icon-label">Profile</span>
             </div>
 
             {/* Dropdown Menu */}
             <ul className={`dropdown-menu ${dropdownOpen ? "open" : ""}`}>
+              <li className="dropdown-header">
+                <span className="greeting">Hello {user.email.split('@')[0]}</span>
+                <span className="user-role">{user.role}</span>
+              </li>
+              <li className="dropdown-divider"></li>
               <li>
                 <a href="#profile" onClick={(e) => e.preventDefault()}>
                   View Profile
+                </a>
+              </li>
+              <li>
+                <a href="#orders" onClick={(e) => e.preventDefault()}>
+                  Orders
+                </a>
+              </li>
+              <li>
+                <a href="#wishlist" onClick={(e) => e.preventDefault()}>
+                  Wishlist
+                </a>
+              </li>
+              <li>
+                <a href="#contact" onClick={(e) => e.preventDefault()}>
+                  Contact Us
                 </a>
               </li>
               <li>
@@ -143,13 +163,32 @@ export default function Navbar() {
                   Account
                 </a>
               </li>
+              <li>
+                <a href="#saved" onClick={(e) => e.preventDefault()}>
+                  Saved Addresses
+                </a>
+              </li>
+              <li className="dropdown-divider"></li>
+              <li>
+                <a href="#logout" onClick={(e) => { e.preventDefault(); handleLogout(); }}>
+                  Logout
+                </a>
+              </li>
             </ul>
           </div>
 
-          {/* Logout Button */}
-          <button className="logout-btn" onClick={handleLogout}>
-            Logout
-          </button>
+          {/* Wishlist Icon */}
+          <div className="nav-icon-item">
+            <img src={heartIcon} alt="Wishlist" className="nav-icon" />
+            <span className="nav-icon-label">Wishlist</span>
+          </div>
+
+          {/* Cart Icon */}
+          <div className="nav-icon-item cart-icon-wrapper">
+            <img src={cartIcon} alt="Bag" className="nav-icon" />
+            <span className="nav-icon-label">Bag</span>
+            <span className="cart-badge">1</span>
+          </div>
         </div>
       </div>
     </nav>
