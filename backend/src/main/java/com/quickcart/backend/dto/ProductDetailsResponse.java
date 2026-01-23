@@ -1,49 +1,45 @@
 package com.quickcart.backend.dto;
 
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
+import lombok.Builder;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
-public class UpdateProductRequest {
+@Builder
+public class ProductDetailsResponse {
 
-    @NotBlank
+    private Long id;
     private String name;
-
     private String description;
-
     private String shortDescription;
 
     private String brand;
-
     private String sku;
 
-    @NotNull
-    @Min(0)
     private BigDecimal price;
-
     private BigDecimal mrp;
-
     private BigDecimal discountPrice;
 
     private String thumbnailUrl;
 
     private BigDecimal rating;
-
     private Integer reviewCount;
 
     private Boolean isFeatured;
-
     private Boolean isReturnable;
-
     private Integer warrantyMonths;
 
-    private Long categoryId;
-
-    @NotNull
-    @Min(0)
     private Integer stock;
+    private String status;
+
+    private Long manufacturerId;
+    private String manufacturerName;
+
+    private Long categoryId;
+    private CategoryResponse category;
+
+    private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 }

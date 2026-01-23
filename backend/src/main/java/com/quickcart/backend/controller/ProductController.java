@@ -1,7 +1,10 @@
 package com.quickcart.backend.controller;
 
+import com.quickcart.backend.dto.BulkCreateProductsRequest;
+import com.quickcart.backend.dto.BulkCreateProductsResponse;
 import com.quickcart.backend.dto.CreateProductRequest;
-import com.quickcart.backend.dto.ProductResponse;
+import com.quickcart.backend.dto.ProductDetailsResponse;
+import com.quickcart.backend.dto.ProductListResponse;
 import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.security.CustomUserDetails;
 import com.quickcart.backend.service.ProductService;
@@ -31,14 +34,33 @@ public class ProductController {
         return ResponseEntity.ok("Product created successfully");
     }
 
+    @PostMapping("/bulk")
+    @PreAuthorize("hasRole('MANUFACTURER')")
+    public ResponseEntity<BulkCreateProductsResponse> createProductsBulk(
+            @Valid @RequestBody BulkCreateProductsRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.status(201).body(
+                productService.createProductsBulk(request, currentUser.getUser())
+        );
+    }
+
     @GetMapping
-    public ResponseEntity<Page<ProductResponse>> listProducts(
+    public ResponseEntity<Page<ProductListResponse>> listProducts(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             Pageable pageable
     ) {
         return ResponseEntity.ok(
-                productService.getProductsForUser(currentUser.getUser(), pageable)
+                productService.getProductListForUser(currentUser.getUser(), pageable)
         );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ProductDetailsResponse> getProductById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(productService.getProductDetailsByIdForUser(id, currentUser.getUser()));
     }
 
     @PutMapping("/{id}")

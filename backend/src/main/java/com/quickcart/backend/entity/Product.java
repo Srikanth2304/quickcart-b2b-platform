@@ -25,8 +25,46 @@ public class Product {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "short_description", length = 255)
+    private String shortDescription;
+
+    @Column(length = 100)
+    private String brand;
+
+    @Column(length = 100)
+    private String sku;
+
+    // Keeping existing `price` column (your table also has mrp/discount_price)
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
+
+    @Column(precision = 10, scale = 2)
+    private BigDecimal mrp;
+
+    @Column(name = "discount_price", precision = 10, scale = 2)
+    private BigDecimal discountPrice;
+
+    @Column(name = "thumbnail_url", length = 500)
+    private String thumbnailUrl;
+
+    @Column(precision = 3, scale = 2)
+    private BigDecimal rating;
+
+    @Column(name = "review_count")
+    private Integer reviewCount;
+
+    @Column(name = "is_featured")
+    private Boolean isFeatured;
+
+    @Column(name = "is_returnable")
+    private Boolean isReturnable;
+
+    @Column(name = "warranty_months")
+    private Integer warrantyMonths;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id")
+    private Category category;
 
     @Column(nullable = false)
     private Integer stock;
@@ -49,7 +87,18 @@ public class Product {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-        status = ProductStatus.ACTIVE;
+        if (status == null) {
+            status = ProductStatus.ACTIVE;
+        }
+        if (isFeatured == null) {
+            isFeatured = false;
+        }
+        if (isReturnable == null) {
+            isReturnable = false;
+        }
+        if (reviewCount == null) {
+            reviewCount = 0;
+        }
     }
 
     @PreUpdate

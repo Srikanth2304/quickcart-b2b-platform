@@ -13,9 +13,33 @@ public class CreateProductRequest {
 
     private String description;
 
+    private String shortDescription;
+
+    private String brand;
+
+    private String sku;
+
     @NotNull(message = "Price is required")
-    @DecimalMin(value = "0.0", inclusive = true)
+    @Positive(message = "Price must be greater than 0")
     private BigDecimal price;
+
+    private BigDecimal mrp;
+
+    private BigDecimal discountPrice;
+
+    private String thumbnailUrl;
+
+    private BigDecimal rating;
+
+    private Integer reviewCount;
+
+    private Boolean isFeatured;
+
+    private Boolean isReturnable;
+
+    private Integer warrantyMonths;
+
+    private Long categoryId;
 
     @NotNull(message = "Stock is required")
     @Min(value = 0)
