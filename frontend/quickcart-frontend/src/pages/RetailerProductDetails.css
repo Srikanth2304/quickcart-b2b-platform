@@ -35,6 +35,16 @@
   font-weight: 600;
 }
 
+.retailer-product-breadcrumb .breadcrumb-link {
+  color: #6b7280;
+  text-decoration: none;
+}
+
+.retailer-product-breadcrumb .breadcrumb-link:hover {
+  color: #111827;
+  text-decoration: underline;
+}
+
 .retailer-product-details-grid {
   display: grid;
   grid-template-columns: 1.1fr 1fr;

@@ -2,7 +2,6 @@ package com.quickcart.backend.controller;
 
 import com.quickcart.backend.dto.AuthResponse;
 import com.quickcart.backend.dto.LoginRequest;
-import com.quickcart.backend.dto.RegisterRequest;
 import com.quickcart.backend.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,12 +14,6 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
-
-    @PostMapping("/register")
-    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest request) {
-        authService.register(request);
-        return ResponseEntity.ok("User registered successfully");
-    }
 
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {

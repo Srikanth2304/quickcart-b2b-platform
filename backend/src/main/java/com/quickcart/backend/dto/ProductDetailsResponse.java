@@ -22,6 +22,12 @@ public class ProductDetailsResponse {
     private BigDecimal mrp;
     private BigDecimal discountPrice;
 
+    /** discount amount (mrp - price) when both are present; otherwise 0 */
+    private BigDecimal discount;
+
+    /** discount percentage ( (mrp - price) / mrp * 100 ) when mrp and price are present; otherwise 0 */
+    private BigDecimal discountPercent;
+
     private String thumbnailUrl;
 
     private BigDecimal rating;

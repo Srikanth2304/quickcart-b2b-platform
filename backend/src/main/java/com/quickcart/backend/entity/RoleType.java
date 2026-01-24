@@ -5,6 +5,8 @@ package com.quickcart.backend.entity;
  * Provides compile-time safety for role values.
  */
 public enum RoleType {
+    ADMIN,
+    CATALOG_MANAGER,
     MANUFACTURER,
     RETAILER;
 
@@ -16,4 +18,3 @@ public enum RoleType {
         return this.name();
     }
 }
-

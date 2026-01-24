@@ -4,6 +4,7 @@ import com.quickcart.backend.dto.BulkCreateProductsRequest;
 import com.quickcart.backend.dto.BulkCreateProductsResponse;
 import com.quickcart.backend.dto.CreateProductRequest;
 import com.quickcart.backend.dto.ProductDetailsResponse;
+import com.quickcart.backend.dto.ProductFacetsResponse;
 import com.quickcart.backend.dto.ProductListResponse;
 import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.security.CustomUserDetails;
@@ -16,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.math.BigDecimal;
 
 @RestController
 @RequestMapping("/products")
@@ -48,10 +51,81 @@ public class ProductController {
     @GetMapping
     public ResponseEntity<Page<ProductListResponse>> listProducts(
             @AuthenticationPrincipal CustomUserDetails currentUser,
-            Pageable pageable
+            Pageable pageable,
+            /** category slug(s): "electronics" or "electronics,furniture" */
+            @RequestParam(required = false) String category,
+            /** exact brand match (case-insensitive) */
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            /** rating >= this value */
+            @RequestParam(required = false) BigDecimal rating,
+            @RequestParam(required = false) Boolean inStock,
+            @RequestParam(required = false) Boolean featured,
+            @RequestParam(required = false) Boolean returnable,
+            /** true => discount_price is NOT NULL; false => discount_price IS NULL */
+            @RequestParam(required = false) Boolean hasDiscountPrice,
+            /** computed (mrp - price) >= minDiscount */
+            @RequestParam(required = false) BigDecimal minDiscount
     ) {
         return ResponseEntity.ok(
-                productService.getProductListForUser(currentUser.getUser(), pageable)
+                productService.getProductListForUser(
+                        currentUser.getUser(),
+                        pageable,
+                        category,
+                        brand,
+                        minPrice,
+                        maxPrice,
+                        rating,
+                        inStock,
+                        featured,
+                        returnable,
+                        hasDiscountPrice,
+                        minDiscount
+                )
+        );
+    }
+
+    /**
+     * Facets endpoint for UI filters.
+     * Returns category + brand counts across the full filtered dataset (not paginated).
+     *
+     * NOTE: For better multi-select UX, the backend intentionally does NOT apply the facet's own filter
+     * when computing its counts (e.g., category facet ignores `category` filter; brand facet ignores `brand`).
+     */
+    @GetMapping("/facets")
+    public ResponseEntity<ProductFacetsResponse> getProductFacets(
+            @AuthenticationPrincipal CustomUserDetails currentUser,
+            /** category slug(s): "electronics" or "electronics,furniture" */
+            @RequestParam(required = false) String category,
+            /** exact brand match (case-insensitive) */
+            @RequestParam(required = false) String brand,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            /** rating >= this value */
+            @RequestParam(required = false) BigDecimal rating,
+            @RequestParam(required = false) Boolean inStock,
+            @RequestParam(required = false) Boolean featured,
+            @RequestParam(required = false) Boolean returnable,
+            /** true => discount_price is NOT NULL; false => discount_price IS NULL */
+            @RequestParam(required = false) Boolean hasDiscountPrice,
+            /** computed (mrp - price) >= minDiscount */
+            @RequestParam(required = false) BigDecimal minDiscount
+    ) {
+        return ResponseEntity.ok(
+                productService.getProductFacetsForUser(
+                        currentUser.getUser(),
+                        category,
+                        brand,
+                        minPrice,
+                        maxPrice,
+                        rating,
+                        inStock,
+                        featured,
+                        returnable,
+                        hasDiscountPrice,
+                        minDiscount
+                )
         );
     }
 

@@ -4,6 +4,7 @@ import com.quickcart.backend.dto.BulkCreateProductsRequest;
 import com.quickcart.backend.dto.BulkCreateProductsResponse;
 import com.quickcart.backend.dto.CreateProductRequest;
 import com.quickcart.backend.dto.ProductDetailsResponse;
+import com.quickcart.backend.dto.ProductFacetsResponse;
 import com.quickcart.backend.dto.ProductListResponse;
 import com.quickcart.backend.dto.UpdateProductRequest;
 import com.quickcart.backend.entity.Category;
@@ -13,13 +14,19 @@ import com.quickcart.backend.entity.User;
 import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.CategoryRepository;
+import com.quickcart.backend.repository.ProductFacetRepository;
 import com.quickcart.backend.repository.ProductRepository;
+import com.quickcart.backend.repository.ProductReviewRepository;
+import com.quickcart.backend.repository.spec.ProductSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 
 @Service
@@ -28,6 +35,8 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final CategoryRepository categoryRepository;
+    private final ProductFacetRepository productFacetRepository;
+    private final ProductReviewRepository productReviewRepository;
 
     public void createProduct(CreateProductRequest request, User manufacturer) {
         Category category = resolveCategory(request.getCategoryId());
@@ -42,8 +51,6 @@ public class ProductService {
                 .mrp(request.getMrp())
                 .discountPrice(request.getDiscountPrice())
                 .thumbnailUrl(request.getThumbnailUrl())
-                .rating(request.getRating())
-                .reviewCount(request.getReviewCount())
                 .isFeatured(request.getIsFeatured())
                 .isReturnable(request.getIsReturnable())
                 .warrantyMonths(request.getWarrantyMonths())
@@ -51,26 +58,63 @@ public class ProductService {
                 .stock(request.getStock())
                 .status(ProductStatus.ACTIVE)
                 .manufacturer(manufacturer)
+                // rating/review_count are derived from product_reviews; do not accept from request
+                .rating(null)
+                .reviewCount(0)
                 .build();
 
         productRepository.save(product);
     }
 
     public Page<ProductListResponse> getProductListForUser(User user, Pageable pageable) {
+        return getProductListForUser(user, pageable, null, null, null, null, null, null);
+    }
 
-        Page<Product> products;
+    public Page<ProductListResponse> getProductListForUser(
+            User user,
+            Pageable pageable,
+            String category,
+            String brand,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            BigDecimal rating,
+            Boolean inStock
+    ) {
+        return getProductListForUser(user, pageable, category, brand, minPrice, maxPrice, rating, inStock, null, null, null, null);
+    }
 
-        boolean isManufacturer = user.hasRole("MANUFACTURER");
+    public Page<ProductListResponse> getProductListForUser(
+            User user,
+            Pageable pageable,
+            String category,
+            String brand,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            BigDecimal rating,
+            Boolean inStock,
+            Boolean featured,
+            Boolean returnable,
+            Boolean hasDiscountPrice,
+            BigDecimal minDiscount
+    ) {
+        Specification<Product> spec = Specification
+                .where(ProductSpecifications.visibleToUser(user))
+                .and(ProductSpecifications.hasCategorySlugs(category))
+                .and(ProductSpecifications.hasBrand(brand))
+                .and(ProductSpecifications.priceGte(minPrice))
+                .and(ProductSpecifications.priceLte(maxPrice))
+                .and(ProductSpecifications.ratingGte(rating))
+                .and(ProductSpecifications.inStock(inStock))
+                .and(ProductSpecifications.isFeatured(featured))
+                .and(ProductSpecifications.isReturnable(returnable))
+                .and(ProductSpecifications.hasDiscountPrice(hasDiscountPrice))
+                .and(ProductSpecifications.discountGte(minDiscount));
 
-        if (isManufacturer) {
-            products = productRepository.findByManufacturer(user, pageable);
-        } else {
-            products = productRepository.findByStatus(ProductStatus.ACTIVE, pageable);
-        }
-
+        Page<Product> products = productRepository.findAll(spec, pageable);
         return products.map(this::mapToListResponse);
     }
 
+    @Transactional(readOnly = true)
     public ProductDetailsResponse getProductDetailsByIdForUser(Long productId, User user) {
         boolean isManufacturer = user.hasRole("MANUFACTURER");
 
@@ -101,18 +145,77 @@ public class ProductService {
     }
 
     private ProductListResponse mapToListResponse(Product product) {
+        BigDecimal mrp = product.getMrp();
+        BigDecimal price = product.getPrice();
+
+        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal discountPercent = BigDecimal.ZERO;
+
+        if (mrp != null && price != null && mrp.signum() > 0) {
+            discount = mrp.subtract(price);
+            if (discount.signum() < 0) {
+                discount = BigDecimal.ZERO;
+            }
+            if (discount.signum() > 0) {
+                discountPercent = discount
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(mrp, 2, RoundingMode.HALF_UP);
+            }
+        }
+
+        Integer stock = product.getStock();
+        boolean inStock = stock != null && stock > 0;
+
+        Double avg = productReviewRepository.averageRatingByProductId(product.getId());
+        long reviewCount = productReviewRepository.countByProductId(product.getId());
+
+        BigDecimal avgRating = avg == null ? null : BigDecimal.valueOf(avg).setScale(2, java.math.RoundingMode.HALF_UP);
+
         return ProductListResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
                 .description(product.getDescription())
-                .price(product.getPrice())
-                .stock(product.getStock())
-                .status(product.getStatus().name())
-                .manufacturerName(product.getManufacturer() != null ? product.getManufacturer().getName() : null)
+                .brand(product.getBrand())
+                .imageUrl(product.getThumbnailUrl())
+                .price(price)
+                .mrp(mrp)
+                .discount(discount)
+                .discountPercent(discountPercent)
+                .rating(avgRating)
+                .reviewsCount((int) reviewCount)
+                .stock(stock)
+                .isInStock(inStock)
+                .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                .category(product.getCategory() == null ? null : com.quickcart.backend.dto.CategoryResponse.builder()
+                        .id(product.getCategory().getId())
+                        .name(product.getCategory().getName())
+                        .slug(product.getCategory().getSlug())
+                        .build())
                 .build();
     }
 
     private ProductDetailsResponse mapToDetailsResponse(Product product) {
+        Double avg = productReviewRepository.averageRatingByProductId(product.getId());
+        long reviewCount = productReviewRepository.countByProductId(product.getId());
+        BigDecimal avgRating = avg == null ? null : BigDecimal.valueOf(avg).setScale(2, java.math.RoundingMode.HALF_UP);
+
+        BigDecimal mrp = product.getMrp();
+        BigDecimal price = product.getPrice();
+        BigDecimal discount = BigDecimal.ZERO;
+        BigDecimal discountPercent = BigDecimal.ZERO;
+
+        if (mrp != null && price != null && mrp.signum() > 0) {
+            discount = mrp.subtract(price);
+            if (discount.signum() < 0) {
+                discount = BigDecimal.ZERO;
+            }
+            if (discount.signum() > 0) {
+                discountPercent = discount
+                        .multiply(BigDecimal.valueOf(100))
+                        .divide(mrp, 2, RoundingMode.HALF_UP);
+            }
+        }
+
         return ProductDetailsResponse.builder()
                 .id(product.getId())
                 .name(product.getName())
@@ -123,9 +226,11 @@ public class ProductService {
                 .price(product.getPrice())
                 .mrp(product.getMrp())
                 .discountPrice(product.getDiscountPrice())
+                .discount(discount)
+                .discountPercent(discountPercent)
                 .thumbnailUrl(product.getThumbnailUrl())
-                .rating(product.getRating())
-                .reviewCount(product.getReviewCount())
+                .rating(avgRating)
+                .reviewCount((int) reviewCount)
                 .isFeatured(product.getIsFeatured())
                 .isReturnable(product.getIsReturnable())
                 .warrantyMonths(product.getWarrantyMonths())
@@ -163,8 +268,11 @@ public class ProductService {
         product.setMrp(request.getMrp());
         product.setDiscountPrice(request.getDiscountPrice());
         product.setThumbnailUrl(request.getThumbnailUrl());
-        product.setRating(request.getRating());
-        product.setReviewCount(request.getReviewCount());
+
+        // rating/review_count are derived from product_reviews; do not allow direct updates
+        // product.setRating(request.getRating());
+        // product.setReviewCount(request.getReviewCount());
+
         product.setIsFeatured(request.getIsFeatured());
         product.setIsReturnable(request.getIsReturnable());
         product.setWarrantyMonths(request.getWarrantyMonths());
@@ -205,8 +313,9 @@ public class ProductService {
                             .mrp(p.getMrp())
                             .discountPrice(p.getDiscountPrice())
                             .thumbnailUrl(p.getThumbnailUrl())
-                            .rating(p.getRating())
-                            .reviewCount(p.getReviewCount())
+                            // rating/review_count are derived from product_reviews; do not accept from request
+                            .rating(null)
+                            .reviewCount(0)
                             .isFeatured(p.getIsFeatured())
                             .isReturnable(p.getIsReturnable())
                             .warrantyMonths(p.getWarrantyMonths())
@@ -227,6 +336,50 @@ public class ProductService {
         return BulkCreateProductsResponse.builder()
                 .createdCount(saved.size())
                 .productIds(ids)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public ProductFacetsResponse getProductFacetsForUser(
+            User user,
+            String category,
+            String brand,
+            BigDecimal minPrice,
+            BigDecimal maxPrice,
+            BigDecimal rating,
+            Boolean inStock,
+            Boolean featured,
+            Boolean returnable,
+            Boolean hasDiscountPrice,
+            BigDecimal minDiscount
+    ) {
+        return ProductFacetsResponse.builder()
+                .categories(productFacetRepository.getCategoryFacets(
+                        user,
+                        category,
+                        brand,
+                        minPrice,
+                        maxPrice,
+                        rating,
+                        inStock,
+                        featured,
+                        returnable,
+                        hasDiscountPrice,
+                        minDiscount
+                ))
+                .brands(productFacetRepository.getBrandFacets(
+                        user,
+                        category,
+                        brand,
+                        minPrice,
+                        maxPrice,
+                        rating,
+                        inStock,
+                        featured,
+                        returnable,
+                        hasDiscountPrice,
+                        minDiscount
+                ))
                 .build();
     }
 }

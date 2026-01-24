@@ -97,7 +97,9 @@ export default function RetailerProductDetails() {
       {!loading && !error && product && (
         <div className="retailer-product-details">
           <div className="retailer-product-breadcrumb">
-            Home / Products / <span>{product.category?.name || "Retailer Products"}</span>
+            <a href="/" className="breadcrumb-link">Home</a> /
+            <a href="/retailer/products" className="breadcrumb-link"> Products</a> /
+            <span>{product.category?.name || "Retailer Products"}</span>
           </div>
 
           <div className="retailer-product-details-grid">

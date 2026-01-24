@@ -2,9 +2,11 @@ package com.quickcart.backend;
 
 import com.quickcart.backend.dto.CreateProductRequest;
 import com.quickcart.backend.dto.ProductDetailsResponse;
+import com.quickcart.backend.entity.Category;
 import com.quickcart.backend.entity.Product;
 import com.quickcart.backend.entity.Role;
 import com.quickcart.backend.entity.User;
+import com.quickcart.backend.repository.CategoryRepository;
 import com.quickcart.backend.repository.ProductRepository;
 import com.quickcart.backend.repository.RoleRepository;
 import com.quickcart.backend.repository.UserRepository;
@@ -15,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Set;
 import java.util.UUID;
 
@@ -35,10 +38,13 @@ class ProductGetByIdApiTests {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private CategoryRepository categoryRepository;
+
     @Test
     @Transactional
     void getProductById_returnsFullProductResponse() {
-        // Arrange: manufacturer + product
+        // Arrange: manufacturer + category + product
         Role manufacturerRole = roleRepository.findByName("MANUFACTURER")
                 .orElseGet(() -> roleRepository.save(Role.builder().name("MANUFACTURER").build()));
 
@@ -48,6 +54,13 @@ class ProductGetByIdApiTests {
                 .password("pass")
                 .isActive(true)
                 .roles(Set.of(manufacturerRole))
+                .build());
+
+        Category category = categoryRepository.save(Category.builder()
+                .name("Test Category")
+                .slug("test-category-" + UUID.randomUUID())
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
                 .build());
 
         CreateProductRequest req = new CreateProductRequest();
@@ -65,7 +78,7 @@ class ProductGetByIdApiTests {
         req.setIsFeatured(true);
         req.setIsReturnable(true);
         req.setWarrantyMonths(12);
-        req.setCategoryId(99L);
+        req.setCategoryId(category.getId());
         req.setStock(7);
 
         productService.createProduct(req, manufacturer);
@@ -95,7 +108,12 @@ class ProductGetByIdApiTests {
         assertThat(res.getIsFeatured()).isTrue();
         assertThat(res.getIsReturnable()).isTrue();
         assertThat(res.getWarrantyMonths()).isEqualTo(12);
-        assertThat(res.getCategoryId()).isEqualTo(99L);
+
+        assertThat(res.getCategoryId()).isEqualTo(category.getId());
+        assertThat(res.getCategory()).isNotNull();
+        assertThat(res.getCategory().getId()).isEqualTo(category.getId());
+        assertThat(res.getCategory().getName()).isEqualTo(category.getName());
+        assertThat(res.getCategory().getSlug()).isEqualTo(category.getSlug());
 
         assertThat(res.getStock()).isEqualTo(7);
         assertThat(res.getStatus()).isNotBlank();

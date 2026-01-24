@@ -30,6 +30,20 @@ spring:
     serialization:
       FAIL_ON_EMPTY_BEANS: false
 
+# ✅ Optional: bootstrap the first admin user (use env vars/secrets in real production)
+#
+# SECURITY NOTE:
+# - Keep `enabled: false` in committed config.
+# - If you need to bootstrap an admin (fresh DB), enable temporarily via env vars:
+#     APP_BOOTSTRAP_ADMIN_ENABLED=true
+#     APP_BOOTSTRAP_ADMIN_EMAIL=...
+#     APP_BOOTSTRAP_ADMIN_PASSWORD=...
+#     APP_BOOTSTRAP_ADMIN_NAME=...
+app:
+  bootstrap:
+    admin:
+      enabled: false
+
 # JWT Security Configuration
 security:
   jwt:

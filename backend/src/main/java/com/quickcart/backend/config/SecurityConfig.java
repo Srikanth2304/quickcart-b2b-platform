@@ -37,8 +37,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
 
                 .authorizeHttpRequests(auth -> auth
-                        // ✅ AUTH APIs
-                        .requestMatchers("/auth/**").permitAll()
+                        // ✅ AUTH API: login only (invite-only onboarding)
+                        .requestMatchers("/auth/login").permitAll()
 
                         // ✅ EVERYTHING ELSE NEEDS AUTH
                         .anyRequest().authenticated()

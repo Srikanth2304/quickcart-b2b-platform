@@ -29,5 +29,18 @@ public class Category {
 
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-}
 
+    /**
+     * Audit: admin/internal user that created this category.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private User createdBy;
+
+    /**
+     * Audit: admin/internal user that last updated this category.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+}
