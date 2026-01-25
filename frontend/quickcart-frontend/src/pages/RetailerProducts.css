@@ -157,6 +157,17 @@
   margin-bottom: 0;
 }
 
+.filters-more {
+  border: none;
+  background: transparent;
+  color: #2563eb;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  padding: 0;
+}
+
 .filters-empty {
   font-size: 12px;
   color: #9ca3af;
@@ -469,6 +480,115 @@
   margin-top: 10px;
 }
 
+.brand-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  padding: 180px 16px 24px 280px;
+  z-index: 1000;
+}
+
+.brand-modal {
+  width: min(760px, 100%);
+  max-height: 70vh;
+  background: #fff;
+  border-radius: 0;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.brand-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f1f1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.brand-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.brand-modal-search {
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.brand-modal-search input {
+  width: 240px;
+  border: 1px solid #d1d5db;
+  border-radius: 2px;
+  padding: 6px 8px;
+  font-size: 12px;
+}
+
+.brand-modal-letters {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  justify-content: space-between;
+  padding: 0 16px 10px;
+  font-size: 11px;
+  color: #9ca3af;
+  border-bottom: 1px solid #f1f1f1;
+  white-space: nowrap;
+}
+
+.brand-letter {
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  min-width: 10px;
+  text-align: center;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.brand-letter:hover {
+  color: #111827;
+}
+
+.brand-modal-body {
+  padding: 12px 16px 18px;
+  overflow-y: auto;
+  column-width: 180px;
+  column-gap: 24px;
+  column-fill: auto;
+  flex: 1;
+}
+
+.brand-group {
+  display: grid;
+  gap: 8px;
+  min-width: 180px;
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+
+.brand-group-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.brand-group-list {
+  display: grid;
+  gap: 8px;
+}
+
 .retailer-products-pageInfo {
   color: #6b7280;
   font-size: 12px;
@@ -517,5 +637,14 @@
     border-right: none;
     border-bottom: 1px solid #ececec;
     padding-bottom: 16px;
+  }
+
+  .brand-modal-overlay {
+    justify-content: center;
+    padding: 120px 16px 24px;
+  }
+
+  .brand-modal-search input {
+    width: 100%;
   }
 }

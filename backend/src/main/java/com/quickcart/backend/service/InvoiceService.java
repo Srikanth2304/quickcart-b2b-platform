@@ -3,6 +3,8 @@ package com.quickcart.backend.service;
 import com.quickcart.backend.dto.InvoiceResponse;
 import com.quickcart.backend.entity.Invoice;
 import com.quickcart.backend.entity.User;
+import com.quickcart.backend.exception.AccessDeniedException;
+import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.InvoiceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -38,6 +40,24 @@ public class InvoiceService {
                 invoicesPage.getPageable(),
                 invoicesPage.getTotalElements()
         );
+    }
+
+    /**
+     * Get the invoice for a specific order.
+     * Access: only the retailer who placed the order OR the manufacturer who received the order.
+     */
+    public InvoiceResponse getInvoiceForOrder(Long orderId, User requester) {
+        Invoice invoice = invoiceRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new ResourceNotFoundException("Invoice", "orderId", orderId));
+
+        boolean isRetailer = invoice.getOrder().getRetailer().getId().equals(requester.getId());
+        boolean isManufacturer = invoice.getOrder().getManufacturer().getId().equals(requester.getId());
+
+        if (!isRetailer && !isManufacturer) {
+            throw new AccessDeniedException("Invoice", invoice.getId());
+        }
+
+        return mapToResponse(invoice);
     }
 
     /**

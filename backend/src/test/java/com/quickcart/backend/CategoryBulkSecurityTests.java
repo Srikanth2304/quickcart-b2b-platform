@@ -62,9 +62,8 @@ class CategoryBulkSecurityTests {
         item.setName("Test Category " + suffix);
         req.setCategories(List.of(item));
 
-        // We can't pass user identity into CategoryService yet (no method-level auth there),
-        // but we can still validate the bulk creation works (used by Admin/Catalog endpoints).
-        var res = categoryService.createCategoriesBulk(req);
+        // Pass an actor so auditing fields can be set during bulk creation.
+        var res = categoryService.createCategoriesBulk(req, catalogManager);
         assertThat(res.getCreatedCount()).isEqualTo(1);
         assertThat(res.getCreated()).hasSize(1);
 

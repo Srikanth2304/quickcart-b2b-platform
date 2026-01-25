@@ -23,6 +23,8 @@ export default function RetailerProducts() {
   const [brandOptions, setBrandOptions] = useState([]);
   const [categoryBrandMap, setCategoryBrandMap] = useState(() => new Map());
   const [facetsLoading, setFacetsLoading] = useState(false);
+  const [brandModalOpen, setBrandModalOpen] = useState(false);
+  const [brandSearch, setBrandSearch] = useState("");
   const [expandedSections, setExpandedSections] = useState({
     category: true,
     brand: true,
@@ -38,6 +40,29 @@ export default function RetailerProducts() {
   const stopPropagation = (event) => event.stopPropagation();
   const toggleSection = (key) =>
     setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+
+  const getStoredWishlist = () => {
+    try {
+      const raw = localStorage.getItem("retailer-wishlist");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const saveWishlist = (items) => {
+    try {
+      localStorage.setItem("retailer-wishlist", JSON.stringify(items));
+    } catch (error) {
+      // ignore storage errors
+    }
+  };
+
+  useEffect(() => {
+    const items = getStoredWishlist();
+    setWishlist(new Set(items.map((item) => item?.id).filter(Boolean)));
+  }, []);
 
   useEffect(() => {
     setPage(0);
@@ -298,6 +323,50 @@ export default function RetailerProducts() {
     return options.filter(([name]) => allowed.has(name));
   }, [brandOptions, categoryBrandMap, selectedCategories]);
 
+  const sortedBrandCounts = useMemo(() => {
+    const list = [...brandCounts];
+    return list.sort((a, b) => {
+      const countDiff = Number(b[1] ?? 0) - Number(a[1] ?? 0);
+      if (countDiff !== 0) return countDiff;
+      return String(a[0]).localeCompare(String(b[0]));
+    });
+  }, [brandCounts]);
+
+  const topBrandCounts = useMemo(() => sortedBrandCounts.slice(0, 10), [sortedBrandCounts]);
+  const remainingBrandCount = Math.max(sortedBrandCounts.length - topBrandCounts.length, 0);
+
+  const brandAlphabet = useMemo(
+    () => ["#", ...Array.from({ length: 26 }, (_, idx) => String.fromCharCode(65 + idx))],
+    []
+  );
+
+  const modalBrandCounts = useMemo(() => {
+    const query = brandSearch.trim().toLowerCase();
+    if (!query) return sortedBrandCounts;
+    return sortedBrandCounts.filter(([name]) => String(name).toLowerCase().includes(query));
+  }, [brandSearch, sortedBrandCounts]);
+
+  const brandGroups = useMemo(() => {
+    const groups = new Map();
+    modalBrandCounts.forEach(([name, count]) => {
+      const firstChar = String(name).trim().charAt(0).toUpperCase();
+      const key = firstChar >= "A" && firstChar <= "Z" ? firstChar : "#";
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push([name, count]);
+    });
+
+    return brandAlphabet
+      .filter((key) => groups.has(key))
+      .map((key) => ({ key, items: groups.get(key) }));
+  }, [modalBrandCounts, brandAlphabet]);
+
+  const scrollToBrandGroup = (key) => {
+    const el = document.getElementById(`brand-group-${key}`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  };
+
   const filteredProducts = useMemo(() => {
     if (!Array.isArray(products)) return [];
     if (selectedDiscounts.size === 0) return products;
@@ -347,6 +416,23 @@ export default function RetailerProducts() {
     });
   };
 
+  const toggleWishlist = (product) => {
+    if (!product?.id) return;
+    setWishlist((prev) => {
+      const next = new Set(prev);
+      const items = getStoredWishlist();
+      if (next.has(product.id)) {
+        next.delete(product.id);
+        saveWishlist(items.filter((item) => item?.id !== product.id));
+      } else {
+        next.add(product.id);
+        const filtered = items.filter((item) => item?.id !== product.id);
+        saveWishlist([...filtered, product]);
+      }
+      return next;
+    });
+  };
+
 
   const handleClearAll = () => {
     setSelectedCategories(new Set());
@@ -373,6 +459,7 @@ export default function RetailerProducts() {
   };
 
   return (
+    <>
     <div className="retailer-products-layout">
       <div className="retailer-products-top">
         <div className="retailer-products-breadcrumb">
@@ -442,20 +529,31 @@ export default function RetailerProducts() {
             >
               {facetsLoading ? (
                 <div className="filters-empty">Loading...</div>
-              ) : brandCounts.length === 0 ? (
+              ) : sortedBrandCounts.length === 0 ? (
                 <div className="filters-empty">No brands</div>
               ) : (
-                brandCounts.map(([name, count]) => (
-                  <label key={name} className="filters-option" onClick={stopPropagation}>
-                    <input
-                      type="checkbox"
-                      checked={selectedBrands.has(name)}
-                      onChange={() => toggleSetValue(setSelectedBrands, name)}
-                      onClick={stopPropagation}
-                    />
-                    {name} <span className="filters-count">({count})</span>
-                  </label>
-                ))
+                <>
+                  {topBrandCounts.map(([name, count]) => (
+                    <label key={name} className="filters-option" onClick={stopPropagation}>
+                      <input
+                        type="checkbox"
+                        checked={selectedBrands.has(name)}
+                        onChange={() => toggleSetValue(setSelectedBrands, name)}
+                        onClick={stopPropagation}
+                      />
+                      {name} <span className="filters-count">({count})</span>
+                    </label>
+                  ))}
+                  {remainingBrandCount > 0 && (
+                    <button
+                      type="button"
+                      className="filters-more"
+                      onClick={() => setBrandModalOpen(true)}
+                    >
+                      + {remainingBrandCount} more
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -726,17 +824,7 @@ export default function RetailerProducts() {
                   <button
                     className={`product-wishlist ${wishlist.has(product.id) ? "active" : ""}`}
                     aria-label="Add to wishlist"
-                    onClick={() =>
-                      setWishlist((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(product.id)) {
-                          next.delete(product.id);
-                        } else {
-                          next.add(product.id);
-                        }
-                        return next;
-                      })
-                    }
+                    onClick={() => toggleWishlist(product)}
                   >
                     {wishlist.has(product.id) ? "♥" : "♡"}
                   </button>
@@ -833,5 +921,75 @@ export default function RetailerProducts() {
         </section>
       </div>
     </div>
+    {brandModalOpen && (
+      <div
+        className="brand-modal-overlay"
+        onClick={() => {
+          setBrandModalOpen(false);
+          setBrandSearch("");
+        }}
+      >
+        <div className="brand-modal" onClick={stopPropagation}>
+          <div className="brand-modal-header">
+            <span>Brand</span>
+            <button
+              type="button"
+              className="brand-modal-close"
+              onClick={() => {
+                setBrandModalOpen(false);
+                setBrandSearch("");
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <div className="brand-modal-search">
+            <input
+              type="text"
+              placeholder="Search Brand"
+              value={brandSearch}
+              onChange={(event) => setBrandSearch(event.target.value)}
+            />
+          </div>
+          <div className="brand-modal-letters">
+            {brandAlphabet.map((letter) => (
+              <button
+                key={letter}
+                type="button"
+                className="brand-letter"
+                onClick={() => scrollToBrandGroup(letter)}
+              >
+                {letter}
+              </button>
+            ))}
+          </div>
+          <div className="brand-modal-body">
+            {brandGroups.length === 0 ? (
+              <div className="filters-empty">No brands</div>
+            ) : (
+              brandGroups.map((group) => (
+                <div key={group.key} id={`brand-group-${group.key}`} className="brand-group">
+                  <div className="brand-group-title">{group.key}</div>
+                  <div className="brand-group-list">
+                    {group.items.map(([name, count]) => (
+                      <label key={name} className="filters-option" onClick={stopPropagation}>
+                        <input
+                          type="checkbox"
+                          checked={selectedBrands.has(name)}
+                          onChange={() => toggleSetValue(setSelectedBrands, name)}
+                          onClick={stopPropagation}
+                        />
+                        {name} <span className="filters-count">({count})</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

@@ -28,7 +28,13 @@ public class OrderResponse {
     private String manufacturerName;
     private String manufacturerEmail;
 
+    // Shipment / tracking
+    private String shipmentCarrier;
+    private String shipmentTrackingNumber;
+    private String shipmentTrackingUrl;
+    private LocalDateTime shippedAt;
+    private LocalDateTime deliveredAt;
+
     // Order items
     private List<OrderItemResponse> items;
 }
-

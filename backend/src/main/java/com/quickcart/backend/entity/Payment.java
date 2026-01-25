@@ -4,16 +4,17 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
-@Table(name = "payments")
+@Table(name = "payments",
+        uniqueConstraints = @UniqueConstraint(columnNames = "order_id"))
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Payment {
+public class Payment extends BaseAuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,12 +40,19 @@ public class Payment {
     @Column(name = "payment_reference")
     private String paymentReference;
 
-    @Column(name = "created_at", updatable = false)
-    private LocalDateTime createdAt;
-
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.status = PaymentStatus.INITIATED;
+        applyAuditOnCreate();
+        if (this.status == null) {
+            this.status = PaymentStatus.INITIATED;
+        }
+        if (this.paymentReference == null) {
+            this.paymentReference = UUID.randomUUID().toString();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        applyAuditOnUpdate();
     }
 }

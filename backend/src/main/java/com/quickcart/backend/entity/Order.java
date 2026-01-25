@@ -14,7 +14,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Order {
+public class Order extends BaseAuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -37,6 +37,22 @@ public class Order {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
+    // Shipment / tracking (set by manufacturer)
+    @Column(name = "shipment_carrier", length = 100)
+    private String shipmentCarrier;
+
+    @Column(name = "shipment_tracking_number", length = 100)
+    private String shipmentTrackingNumber;
+
+    @Column(name = "shipment_tracking_url", length = 500)
+    private String shipmentTrackingUrl;
+
+    @Column(name = "shipped_at")
+    private LocalDateTime shippedAt;
+
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
@@ -44,13 +60,17 @@ public class Order {
     )
     private List<OrderItem> items;
 
-    @Column(updatable = false)
-    private LocalDateTime createdAt;
-
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.status = OrderStatus.CREATED;
+        applyAuditOnCreate();
+        // Keep original business default
+        if (this.status == null) {
+            this.status = OrderStatus.CREATED;
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        applyAuditOnUpdate();
     }
 }
-

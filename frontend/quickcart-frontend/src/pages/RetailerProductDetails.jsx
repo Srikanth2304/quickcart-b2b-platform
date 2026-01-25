@@ -14,12 +14,31 @@ function extractImageUrl(image) {
   return image.url || image.imageUrl || image.src || image.path || null;
 }
 
+function getStoredWishlist() {
+  try {
+    const raw = localStorage.getItem("retailer-wishlist");
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function saveWishlist(items) {
+  try {
+    localStorage.setItem("retailer-wishlist", JSON.stringify(items));
+  } catch (error) {
+    // ignore
+  }
+}
+
 export default function RetailerProductDetails() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [activeImage, setActiveImage] = useState(0);
+  const [isWishlisted, setIsWishlisted] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -80,6 +99,26 @@ export default function RetailerProductDetails() {
     setActiveImage(0);
   }, [imageUrls.length]);
 
+  useEffect(() => {
+    if (!product?.id) return;
+    const items = getStoredWishlist();
+    setIsWishlisted(items.some((item) => item?.id === product.id));
+  }, [product?.id]);
+
+  const toggleWishlist = () => {
+    if (!product?.id) return;
+    const items = getStoredWishlist();
+    const exists = items.some((item) => item?.id === product.id);
+    if (exists) {
+      const next = items.filter((item) => item?.id !== product.id);
+      saveWishlist(next);
+      setIsWishlisted(false);
+    } else {
+      saveWishlist([...items.filter((item) => item?.id !== product.id), product]);
+      setIsWishlisted(true);
+    }
+  };
+
   const price = product?.discountPrice ?? product?.price ?? product?.sellingPrice ?? product?.salePrice;
   const mrp = product?.mrp ?? product?.originalPrice ?? product?.listPrice ?? product?.price ?? price;
   const discountPercent =
@@ -132,8 +171,13 @@ export default function RetailerProductDetails() {
                     <span>{product.name?.charAt(0) || "P"}</span>
                   </div>
                 )}
-                <button className="retailer-product-favorite" type="button" aria-label="Wishlist">
-                  ♥
+                <button
+                  className={`retailer-product-favorite ${isWishlisted ? "active" : ""}`}
+                  type="button"
+                  aria-label="Wishlist"
+                  onClick={toggleWishlist}
+                >
+                  {isWishlisted ? "♥" : "♡"}
                 </button>
               </div>
             </div>

@@ -844,6 +844,8 @@ select.form-control {
   padding: var(--space-6) var(--space-8);
   transition: all var(--duration-fast) var(--ease-standard);
   position: relative;
+  border: none;
+  background: transparent;
 }
 
 .nav-icon-item:hover .nav-icon,

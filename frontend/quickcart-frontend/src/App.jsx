@@ -9,6 +9,7 @@ import RetailerProducts from "./pages/RetailerProducts";
 import RetailerProductDetails from "./pages/RetailerProductDetails";
 import RetailerOrders from "./pages/RetailerOrders";
 import RetailerInvoices from "./pages/RetailerInvoices";
+import RetailerWishlist from "./pages/RetailerWishlist";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Navbar from "./components/Navbar";
 
@@ -125,6 +126,15 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["RETAILER"]}>
               <RetailerInvoices />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/retailer/wishlist"
+          element={
+            <ProtectedRoute allowedRoles={["RETAILER"]}>
+              <RetailerWishlist />
             </ProtectedRoute>
           }
         />

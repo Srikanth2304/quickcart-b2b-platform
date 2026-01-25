@@ -43,6 +43,14 @@ app:
   bootstrap:
     admin:
       enabled: false
+  refunds:
+    processor:
+      # Refund completion fallback.
+      # Production: ideally completed by payment gateway refund callbacks/webhooks.
+      # Enabled by default to enforce the 5-minute auto-complete rule.
+      enabled: true
+      fixedDelayMs: 2000
+      autoCompleteAfterMinutes: 5
 
 # JWT Security Configuration
 security:

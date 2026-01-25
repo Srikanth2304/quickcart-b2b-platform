@@ -144,7 +144,15 @@ export default function Navbar() {
                 </a>
               </li>
               <li>
-                <a href="#wishlist" onClick={(e) => e.preventDefault()}>
+                <a
+                  href="/retailer/wishlist"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (user.role === "RETAILER") {
+                      navigate("/retailer/wishlist");
+                    }
+                  }}
+                >
                   Wishlist
                 </a>
               </li>
@@ -178,10 +186,18 @@ export default function Navbar() {
           </div>
 
           {/* Wishlist Icon */}
-          <div className="nav-icon-item">
+          <button
+            type="button"
+            className="nav-icon-item"
+            onClick={() => {
+              if (user.role === "RETAILER") {
+                navigate("/retailer/wishlist");
+              }
+            }}
+          >
             <img src={heartIcon} alt="Wishlist" className="nav-icon" />
             <span className="nav-icon-label">Wishlist</span>
-          </div>
+          </button>
 
           {/* Cart Icon */}
           <div className="nav-icon-item cart-icon-wrapper">

@@ -73,8 +73,12 @@ class ProductGetByIdApiTests {
         req.setMrp(new BigDecimal("15.00"));
         req.setDiscountPrice(new BigDecimal("11.00"));
         req.setThumbnailUrl("https://example.com/p1.png");
+
+        // Note: rating/reviewCount are derived from product_reviews (see ProductService.createProduct)
+        // so they should NOT be asserted from request values.
         req.setRating(new BigDecimal("4.50"));
         req.setReviewCount(10);
+
         req.setIsFeatured(true);
         req.setIsReturnable(true);
         req.setWarrantyMonths(12);
@@ -103,8 +107,11 @@ class ProductGetByIdApiTests {
         assertThat(res.getDiscountPrice()).isEqualByComparingTo("11.00");
 
         assertThat(res.getThumbnailUrl()).isEqualTo("https://example.com/p1.png");
-        assertThat(res.getRating()).isEqualByComparingTo("4.50");
-        assertThat(res.getReviewCount()).isEqualTo(10);
+
+        // Computed from reviews (none exist in this test)
+        assertThat(res.getRating()).isNull();
+        assertThat(res.getReviewCount()).isEqualTo(0);
+
         assertThat(res.getIsFeatured()).isTrue();
         assertThat(res.getIsReturnable()).isTrue();
         assertThat(res.getWarrantyMonths()).isEqualTo(12);

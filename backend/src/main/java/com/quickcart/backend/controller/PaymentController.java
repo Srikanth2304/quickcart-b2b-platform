@@ -1,6 +1,7 @@
 package com.quickcart.backend.controller;
 
 import com.quickcart.backend.dto.PaymentRequest;
+import com.quickcart.backend.dto.PaymentResponse;
 import com.quickcart.backend.security.CustomUserDetails;
 import com.quickcart.backend.service.PaymentService;
 import jakarta.validation.Valid;
@@ -26,5 +27,14 @@ public class PaymentController {
     ) {
         paymentService.makePayment(request, currentUser.getUser());
         return ResponseEntity.status(HttpStatus.CREATED).body("Payment successful");
+    }
+
+    @GetMapping("/order/{orderId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PaymentResponse> getPaymentForOrder(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(paymentService.getPaymentForOrder(orderId, currentUser.getUser()));
     }
 }

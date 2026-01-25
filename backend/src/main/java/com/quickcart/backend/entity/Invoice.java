@@ -4,7 +4,6 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -15,7 +14,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Invoice {
+public class Invoice extends BaseAuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,13 +38,20 @@ public class Invoice {
     @Column(nullable = false)
     private InvoiceStatus status;
 
-    @Column(nullable = false)
-    private LocalDateTime createdAt;
-
     @PrePersist
-    public void prePersist() {
-        this.createdAt = LocalDateTime.now();
-        this.status = InvoiceStatus.GENERATED;
-        this.invoiceNumber = "INV-" + UUID.randomUUID();
+    protected void onCreate() {
+        applyAuditOnCreate();
+
+        if (this.status == null) {
+            this.status = InvoiceStatus.GENERATED;
+        }
+        if (this.invoiceNumber == null) {
+            this.invoiceNumber = "INV-" + UUID.randomUUID();
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        applyAuditOnUpdate();
     }
 }
