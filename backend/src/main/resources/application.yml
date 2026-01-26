@@ -20,11 +20,15 @@ spring:
     hibernate:
       ddl-auto: validate
     open-in-view: false
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
 
   jackson:
     serialization:
@@ -52,6 +56,16 @@ app:
       fixedDelayMs: 2000
       autoCompleteAfterMinutes: 5
 
+  # Razorpay credentials must be supplied via env vars/secrets in production.
+  # Example:
+  #   APP_RAZORPAY_KEY_ID=rzp_test_...
+  #   APP_RAZORPAY_KEY_SECRET=...
+  razorpay:
+    keyId: ${APP_RAZORPAY_KEY_ID:}
+    keySecret: ${APP_RAZORPAY_KEY_SECRET:}
+    currency: ${APP_RAZORPAY_CURRENCY:INR}
+    receiptPrefix: ${APP_RAZORPAY_RECEIPT_PREFIX:qc}
+
 # JWT Security Configuration
 security:
   jwt:
@@ -63,4 +77,7 @@ security:
 
 logging:
   level:
-    org.hibernate.SQL: DEBUG
+    # Stop printing SQL for every query
+    org.hibernate.SQL: WARN
+    # Stop printing bind parameter values
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN

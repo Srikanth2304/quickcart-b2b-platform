@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
+import { showToast } from "../utils/notify";
 import "./RetailerProducts.css";
 
 export default function RetailerProducts() {
@@ -418,20 +419,21 @@ export default function RetailerProducts() {
 
   const toggleWishlist = (product) => {
     if (!product?.id) return;
-    setWishlist((prev) => {
-      const next = new Set(prev);
-      const items = getStoredWishlist();
-      if (next.has(product.id)) {
-        next.delete(product.id);
-        saveWishlist(items.filter((item) => item?.id !== product.id));
-      } else {
-        next.add(product.id);
-        const filtered = items.filter((item) => item?.id !== product.id);
-        saveWishlist([...filtered, product]);
-      }
-      return next;
-    });
+    const items = getStoredWishlist();
+    const next = new Set(wishlist);
+    if (next.has(product.id)) {
+      next.delete(product.id);
+      saveWishlist(items.filter((item) => item?.id !== product.id));
+      showToast("Removed from favorites", "info");
+    } else {
+      next.add(product.id);
+      const filtered = items.filter((item) => item?.id !== product.id);
+      saveWishlist([...filtered, product]);
+      showToast("Added to favorites", "success");
+    }
+    setWishlist(next);
   };
+
 
 
   const handleClearAll = () => {
@@ -823,7 +825,7 @@ export default function RetailerProducts() {
                 <div key={product.id} className="product-card">
                   <button
                     className={`product-wishlist ${wishlist.has(product.id) ? "active" : ""}`}
-                    aria-label="Add to wishlist"
+                    aria-label="Add to favorites"
                     onClick={() => toggleWishlist(product)}
                   >
                     {wishlist.has(product.id) ? "♥" : "♡"}

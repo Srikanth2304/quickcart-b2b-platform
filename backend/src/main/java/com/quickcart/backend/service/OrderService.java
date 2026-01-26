@@ -24,16 +24,20 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderAuditService orderAuditService;
     private final RefundService refundService;
+    private final AddressService addressService;
 
     /**
      * Retailer places an order.
      */
     @Transactional
-    public void placeOrder(PlaceOrderRequest request, User retailer) {
+    public Order placeOrder(PlaceOrderRequest request, User retailer) {
 
         if (!retailer.hasRole("RETAILER")) {
             throw new AccessDeniedException("Only retailers can place orders");
         }
+
+        // Resolve address owned by retailer and take a snapshot into the order
+        Address address = addressService.getAddressOwnedByUserOrThrow(request.getDeliveryAddressId(), retailer);
 
         List<OrderItem> orderItems = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
@@ -89,6 +93,13 @@ public class OrderService {
                 .manufacturer(manufacturer)
                 .status(OrderStatus.CREATED)
                 .totalAmount(totalAmount)
+                // snapshot fields
+                .deliveryName(address.getName())
+                .deliveryPhone(address.getPhone())
+                .deliveryAddressLine1(address.getAddressLine1())
+                .deliveryCity(address.getCity())
+                .deliveryState(address.getState())
+                .deliveryPincode(address.getPincode())
                 .build();
 
         // audit
@@ -102,6 +113,8 @@ public class OrderService {
         Order saved = orderRepository.save(order);
 
         orderAuditService.recordEvent(saved, OrderEventType.ORDER_PLACED, null, OrderStatus.CREATED, retailer, "Order placed");
+
+        return saved;
     }
 
     /**

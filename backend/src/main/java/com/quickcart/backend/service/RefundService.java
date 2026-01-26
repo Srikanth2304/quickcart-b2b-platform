@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -54,6 +53,7 @@ public class RefundService {
         Refund refund = Refund.builder()
                 .order(order)
                 .payment(payment)
+                .gateway(payment.getGateway() == null ? null : payment.getGateway().name())
                 .initiatedBy(RefundInitiatedBy.SYSTEM)
                 .status(RefundStatus.PROCESSING)
                 .reason(reason)
@@ -93,6 +93,7 @@ public class RefundService {
         Refund refund = Refund.builder()
                 .order(order)
                 .payment(payment)
+                .gateway(payment.getGateway() == null ? null : payment.getGateway().name())
                 .initiatedBy(RefundInitiatedBy.RETAILER)
                 .status(RefundStatus.PENDING_APPROVAL)
                 .reason(reason)
@@ -247,6 +248,7 @@ public class RefundService {
         Refund refund = Refund.builder()
                 .order(order)
                 .payment(payment)
+                .gateway(payment.getGateway() == null ? null : payment.getGateway().name())
                 .initiatedBy(RefundInitiatedBy.SYSTEM)
                 .status(RefundStatus.PROCESSING)
                 .reason(reason)

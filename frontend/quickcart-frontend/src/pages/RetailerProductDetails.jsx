@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import api from "../api/axios";
+import { addToBag } from "../utils/bagStorage";
+import { showToast } from "../utils/notify";
 import "./RetailerProductDetails.css";
 
 function formatCurrency(value) {
@@ -113,9 +115,11 @@ export default function RetailerProductDetails() {
       const next = items.filter((item) => item?.id !== product.id);
       saveWishlist(next);
       setIsWishlisted(false);
+      showToast("Removed from favorites", "info");
     } else {
       saveWishlist([...items.filter((item) => item?.id !== product.id), product]);
       setIsWishlisted(true);
+      showToast("Added to favorites", "success");
     }
   };
 
@@ -125,6 +129,12 @@ export default function RetailerProductDetails() {
     mrp && price && Number(mrp) > Number(price)
       ? Math.round(((Number(mrp) - Number(price)) / Number(mrp)) * 100)
       : 0;
+
+  const handleAddToBag = () => {
+    if (!product) return;
+    addToBag(product, 1);
+    showToast("Added to cart", "success");
+  };
   const ratingValue = Number(product?.rating || 0).toFixed(1);
   const ratingCount = product?.reviewCount ?? 0;
 
@@ -174,7 +184,7 @@ export default function RetailerProductDetails() {
                 <button
                   className={`retailer-product-favorite ${isWishlisted ? "active" : ""}`}
                   type="button"
-                  aria-label="Wishlist"
+                  aria-label="Favorites"
                   onClick={toggleWishlist}
                 >
                   {isWishlisted ? "♥" : "♡"}
@@ -186,6 +196,9 @@ export default function RetailerProductDetails() {
               <div className="retailer-product-brand">{product.brand || "Brand"}</div>
               <h1 className="retailer-product-title">{product.name}</h1>
               <div className="retailer-product-subtitle">{product.shortDescription || product.description}</div>
+              <div className="retailer-product-soldby">
+                Supplier: {product.manufacturerName || product.manufacturer?.name || product.manufacturer || "Manufacturer"}
+              </div>
 
               <div className="retailer-product-price-block">
                 <span className="retailer-product-price">₹{formatCurrency(price)}</span>
@@ -205,7 +218,13 @@ export default function RetailerProductDetails() {
               </div>
 
               <div className="retailer-product-actions">
-                <button className="retailer-product-action add">Add to Cart</button>
+                <button
+                  className="retailer-product-action add"
+                  type="button"
+                  onClick={handleAddToBag}
+                >
+                  Add to Cart
+                </button>
                 <button className="retailer-product-action buy">Buy Now</button>
               </div>
 

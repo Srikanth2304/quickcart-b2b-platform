@@ -37,6 +37,22 @@ public class Payment extends BaseAuditableEntity {
     @Column(nullable = false)
     private PaymentStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PaymentGateway gateway;
+
+    /**
+     * Razorpay order id created server-side (used by frontend checkout).
+     */
+    @Column(name = "razorpay_order_id")
+    private String razorpayOrderId;
+
+    /**
+     * Razorpay payment id received after successful checkout (verified server-side).
+     */
+    @Column(name = "razorpay_payment_id")
+    private String razorpayPaymentId;
+
     @Column(name = "payment_reference")
     private String paymentReference;
 
@@ -45,6 +61,9 @@ public class Payment extends BaseAuditableEntity {
         applyAuditOnCreate();
         if (this.status == null) {
             this.status = PaymentStatus.INITIATED;
+        }
+        if (this.gateway == null) {
+            this.gateway = PaymentGateway.RAZORPAY;
         }
         if (this.paymentReference == null) {
             this.paymentReference = UUID.randomUUID().toString();

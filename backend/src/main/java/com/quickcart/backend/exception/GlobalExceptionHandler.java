@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -275,6 +276,28 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles unsupported HTTP methods (e.g., POST to an endpoint that only allows PUT/PATCH).
+     * Returns 405 METHOD NOT ALLOWED.
+     */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(
+            HttpRequestMethodNotSupportedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Method not allowed: {} {}", request.getMethod(), request.getRequestURI());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.METHOD_NOT_ALLOWED.value(),
+                "Method Not Allowed",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.BAD_REQUEST.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+    }
+
+    /**
      * Handles all other unexpected exceptions.
      * Returns 500 INTERNAL SERVER ERROR with a generic message.
      */
@@ -294,5 +317,27 @@ public class GlobalExceptionHandler {
         );
 
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+    }
+
+    /**
+     * Handles InvalidPaymentSignatureException.
+     * Returns 400 BAD REQUEST when payment signature is invalid.
+     */
+    @ExceptionHandler(InvalidPaymentSignatureException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidPaymentSignature(
+            InvalidPaymentSignatureException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid payment signature for {}", request.getRequestURI());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.BAD_REQUEST.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

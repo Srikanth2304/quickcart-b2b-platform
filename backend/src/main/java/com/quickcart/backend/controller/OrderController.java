@@ -3,6 +3,7 @@ package com.quickcart.backend.controller;
 import com.quickcart.backend.dto.CancelOrderRequest;
 import com.quickcart.backend.dto.CreateShipmentRequest;
 import com.quickcart.backend.dto.InvoiceResponse;
+import com.quickcart.backend.dto.OrderCreatedResponse;
 import com.quickcart.backend.dto.OrderEventResponse;
 import com.quickcart.backend.dto.OrderResponse;
 import com.quickcart.backend.dto.PlaceOrderRequest;
@@ -20,6 +21,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -40,12 +42,16 @@ public class OrderController {
 
     @PostMapping
     @PreAuthorize("hasRole('RETAILER')")
-    public ResponseEntity<String> placeOrder(
+    public ResponseEntity<OrderCreatedResponse> placeOrder(
             @Valid @RequestBody PlaceOrderRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        orderService.placeOrder(request, currentUser.getUser());
-        return ResponseEntity.ok("Order placed successfully");
+        var saved = orderService.placeOrder(request, currentUser.getUser());
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(OrderCreatedResponse.builder()
+                        .orderId(saved.getId())
+                        .totalAmount(saved.getTotalAmount())
+                        .build());
     }
 
     /**

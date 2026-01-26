@@ -31,6 +31,12 @@ public class Refund extends BaseAuditableEntity {
     @JoinColumn(name = "payment_id")
     private Payment payment;
 
+    /**
+     * Optional gateway reference for observability / future multi-gateway support.
+     */
+    @Column(name = "gateway", length = 50)
+    private String gateway;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "initiated_by", nullable = false, length = 20)
     private RefundInitiatedBy initiatedBy;
@@ -70,4 +76,3 @@ public class Refund extends BaseAuditableEntity {
         applyAuditOnUpdate();
     }
 }
-

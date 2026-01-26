@@ -314,6 +314,12 @@
   z-index: 2;
 }
 
+.product-wishlist:focus,
+.product-wishlist:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
 .product-card:hover .product-wishlist {
   opacity: 1;
   transform: translateY(0);

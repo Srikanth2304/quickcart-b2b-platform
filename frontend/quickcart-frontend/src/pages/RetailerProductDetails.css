@@ -154,6 +154,11 @@
   font-size: 22px;
   font-weight: 600;
 }
+.retailer-product-soldby {
+  color: #475569;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
 
 .retailer-product-subtitle {
   font-size: 14px;

@@ -11,4 +11,7 @@ public class PlaceOrderRequest {
 
     @NotEmpty(message = "Order items cannot be empty")
     private List<OrderItemRequest> items;
+
+    @NotNull(message = "deliveryAddressId is required")
+    private Long deliveryAddressId;
 }

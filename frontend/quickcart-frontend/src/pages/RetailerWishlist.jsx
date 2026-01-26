@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
+import { addToBag } from "../utils/bagStorage";
+import { showToast } from "../utils/notify";
 import "./RetailerWishlist.css";
 
 function formatCurrency(value) {
@@ -41,6 +43,13 @@ export default function RetailerWishlist() {
     });
   };
 
+  const handleMoveToBag = (product) => {
+    if (!product?.id) return;
+    addToBag(product, 1);
+    handleRemove(product.id);
+    showToast("Added to cart", "success");
+  };
+
   const cards = useMemo(() => {
     return items.map((product) => {
       const price = product?.price ?? product?.sellingPrice ?? product?.salePrice;
@@ -55,7 +64,7 @@ export default function RetailerWishlist() {
           <button
             type="button"
             className="wishlist-remove"
-            aria-label="Remove from wishlist"
+            aria-label="Remove from favorites"
             onClick={() => handleRemove(product.id)}
           >
             ×
@@ -98,8 +107,12 @@ export default function RetailerWishlist() {
               </div>
             </div>
           </a>
-          <button type="button" className="wishlist-move">
-            MOVE TO BAG
+          <button
+            type="button"
+            className="wishlist-move"
+            onClick={() => handleMoveToBag(product)}
+          >
+            MOVE TO CART
           </button>
         </div>
       );
@@ -109,12 +122,12 @@ export default function RetailerWishlist() {
   return (
     <div className="retailer-wishlist-page">
       <div className="retailer-wishlist-header">
-        <h2>My Wishlist</h2>
+        <h2>My Favorites</h2>
         <span>{itemCount} items</span>
       </div>
 
       {itemCount === 0 ? (
-        <div className="retailer-wishlist-empty">Your wishlist is empty.</div>
+        <div className="retailer-wishlist-empty">Your favorites are empty.</div>
       ) : (
         <div className="retailer-wishlist-grid">{cards}</div>
       )}

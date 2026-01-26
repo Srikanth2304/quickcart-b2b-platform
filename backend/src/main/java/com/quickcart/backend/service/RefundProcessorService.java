@@ -1,8 +1,10 @@
 package com.quickcart.backend.service;
 
 import com.quickcart.backend.entity.*;
+import com.quickcart.backend.payment.PaymentGatewayRouter;
 import com.quickcart.backend.repository.RefundRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -22,10 +24,12 @@ import java.util.UUID;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RefundProcessorService {
 
     private final RefundRepository refundRepository;
     private final OrderAuditService orderAuditService;
+    private final PaymentGatewayRouter gatewayRouter;
 
     @Value("${app.refunds.processor.enabled:false}")
     private boolean enabled;
@@ -61,6 +65,21 @@ public class RefundProcessorService {
             if (payment.getStatus() == PaymentStatus.REFUNDED) {
                 return;
             }
+
+            // Try initiating refund at gateway if we have a verified gateway payment id.
+            // This keeps refund flow "gateway-aware" without changing business ownership.
+            if (payment.getGateway() == PaymentGateway.RAZORPAY
+                    && payment.getRazorpayPaymentId() != null
+                    && payment.getStatus() == PaymentStatus.REFUND_PENDING) {
+                try {
+                    gatewayRouter.razorpay().refundPayment(payment.getRazorpayPaymentId(), payment.getAmount());
+                } catch (RuntimeException ex) {
+                    log.error("Razorpay refund failed", ex);
+                    payment.setStatus(PaymentStatus.REFUND_FAILED);
+                    // Keep refund in PROCESSING; scheduled job may auto-complete later as a fallback.
+                }
+            }
+
             if (payment.getStatus() == PaymentStatus.REFUND_PENDING || payment.getStatus() == PaymentStatus.SUCCESS) {
                 payment.setStatus(PaymentStatus.REFUNDED);
             }

@@ -10,8 +10,11 @@ import RetailerProductDetails from "./pages/RetailerProductDetails";
 import RetailerOrders from "./pages/RetailerOrders";
 import RetailerInvoices from "./pages/RetailerInvoices";
 import RetailerWishlist from "./pages/RetailerWishlist";
+import RetailerBag from "./pages/RetailerBag";
+import OrderSuccess from "./pages/OrderSuccess";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Navbar from "./components/Navbar";
+import Toast from "./components/Toast";
 
 function getDefaultAuthedPath() {
   const role = localStorage.getItem("role");
@@ -39,6 +42,7 @@ function App() {
   return (
     <>
       {showNavbar && <Navbar />}
+      <Toast />
 
       <Routes>
         {/* Default route */}
@@ -135,6 +139,24 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["RETAILER"]}>
               <RetailerWishlist />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/retailer/bag"
+          element={
+            <ProtectedRoute allowedRoles={["RETAILER"]}>
+              <RetailerBag />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders/success"
+          element={
+            <ProtectedRoute allowedRoles={["RETAILER"]}>
+              <OrderSuccess />
             </ProtectedRoute>
           }
         />

@@ -1,13 +1,16 @@
 package com.quickcart.backend.service;
 
 import com.quickcart.backend.dto.OrderItemResponse;
+import com.quickcart.backend.dto.OrderPaymentResponse;
 import com.quickcart.backend.dto.OrderResponse;
 import com.quickcart.backend.entity.Order;
 import com.quickcart.backend.entity.OrderItem;
+import com.quickcart.backend.entity.Payment;
 import com.quickcart.backend.entity.User;
 import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.OrderRepository;
+import com.quickcart.backend.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -26,6 +29,7 @@ import java.util.stream.Collectors;
 public class OrderQueryService {
 
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
 
     /**
      * Get paginated orders for authenticated user.
@@ -60,6 +64,7 @@ public class OrderQueryService {
         List<OrderResponse> content = ids.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
+                // Keep list endpoint unchanged: do not fetch payment per order here.
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
 
@@ -85,7 +90,30 @@ public class OrderQueryService {
             throw new AccessDeniedException("Order", orderId);
         }
 
-        return mapToResponse(order);
+        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+
+        OrderResponse response = mapToResponse(order);
+        response.setPayment(mapPayment(payment));
+        return response;
+    }
+
+    private static OrderPaymentResponse mapPayment(Payment payment) {
+        if (payment == null) {
+            return null;
+        }
+
+        // Expose only non-sensitive fields.
+        // paymentId: prefer gateway payment id if present; fallback to our internal paymentReference (safe) if needed.
+        String paymentId = payment.getRazorpayPaymentId();
+        if (paymentId == null || paymentId.isBlank()) {
+            paymentId = payment.getPaymentReference();
+        }
+
+        return OrderPaymentResponse.builder()
+                .paymentId(paymentId)
+                .status(payment.getStatus())
+                .gateway(payment.getGateway())
+                .build();
     }
 
     /**
@@ -101,6 +129,14 @@ public class OrderQueryService {
                 .retailerEmail(order.getRetailer().getEmail())
                 .manufacturerName(order.getManufacturer().getName())
                 .manufacturerEmail(order.getManufacturer().getEmail())
+                // delivery snapshot
+                .deliveryName(order.getDeliveryName())
+                .deliveryPhone(order.getDeliveryPhone())
+                .deliveryAddressLine1(order.getDeliveryAddressLine1())
+                .deliveryCity(order.getDeliveryCity())
+                .deliveryState(order.getDeliveryState())
+                .deliveryPincode(order.getDeliveryPincode())
+                // shipment
                 .shipmentCarrier(order.getShipmentCarrier())
                 .shipmentTrackingNumber(order.getShipmentTrackingNumber())
                 .shipmentTrackingUrl(order.getShipmentTrackingUrl())

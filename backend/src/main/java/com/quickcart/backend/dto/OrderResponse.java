@@ -20,6 +20,12 @@ public class OrderResponse {
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
 
+    /**
+     * Payment details for this order (nullable).
+     * - null when no payment record exists yet.
+     */
+    private OrderPaymentResponse payment;
+
     // Retailer info
     private String retailerName;
     private String retailerEmail;
@@ -27,6 +33,14 @@ public class OrderResponse {
     // Manufacturer info
     private String manufacturerName;
     private String manufacturerEmail;
+
+    // Delivery snapshot
+    private String deliveryName;
+    private String deliveryPhone;
+    private String deliveryAddressLine1;
+    private String deliveryCity;
+    private String deliveryState;
+    private String deliveryPincode;
 
     // Shipment / tracking
     private String shipmentCarrier;

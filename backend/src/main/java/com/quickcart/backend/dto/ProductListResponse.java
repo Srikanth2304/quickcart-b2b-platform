@@ -34,6 +34,10 @@ public class ProductListResponse {
     private Integer stock;
     private Boolean isInStock;
 
+    /** Manufacturer info for list view (e.g., show “Sold by”). */
+    private Long manufacturerId;
+    private String manufacturerName;
+
     private Long categoryId;
     private CategoryResponse category;
 }

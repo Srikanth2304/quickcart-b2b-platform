@@ -1,21 +1,18 @@
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import logo from "../logos/logo1.svg";
 import avatarIcon from "../logos/avatar.svg";
 import heartIcon from "../logos/heart.svg";
 import cartIcon from "../logos/shopping-cart.svg";
+import { getBagCount } from "../utils/bagStorage";
 import "./Navbar.css";
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
-
-  // Show nothing if user is not logged in
-  if (!user) {
-    return null;
-  }
+  const [bagCount, setBagCount] = useState(() => getBagCount());
 
   const handleLogout = () => {
     if (window.confirm("Are you sure you want to logout?")) {
@@ -43,6 +40,21 @@ export default function Navbar() {
     }
     return [];
   };
+
+  useEffect(() => {
+    const refresh = () => setBagCount(getBagCount());
+    window.addEventListener("retailer-bag-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("retailer-bag-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  // Show nothing if user is not logged in
+  if (!user) {
+    return null;
+  }
 
   const navLinks = getNavLinks();
 
@@ -153,7 +165,7 @@ export default function Navbar() {
                     }
                   }}
                 >
-                  Wishlist
+                  Favorites
                 </a>
               </li>
               <li>
@@ -185,7 +197,7 @@ export default function Navbar() {
             </ul>
           </div>
 
-          {/* Wishlist Icon */}
+          {/* Favorites Icon */}
           <button
             type="button"
             className="nav-icon-item"
@@ -195,16 +207,24 @@ export default function Navbar() {
               }
             }}
           >
-            <img src={heartIcon} alt="Wishlist" className="nav-icon" />
-            <span className="nav-icon-label">Wishlist</span>
+            <img src={heartIcon} alt="Favorites" className="nav-icon" />
+            <span className="nav-icon-label">Favorites</span>
           </button>
 
           {/* Cart Icon */}
-          <div className="nav-icon-item cart-icon-wrapper">
-            <img src={cartIcon} alt="Bag" className="nav-icon" />
-            <span className="nav-icon-label">Bag</span>
-            <span className="cart-badge">1</span>
-          </div>
+          <button
+            type="button"
+            className="nav-icon-item cart-icon-wrapper"
+            onClick={() => {
+              if (user.role === "RETAILER") {
+                navigate("/retailer/bag");
+              }
+            }}
+          >
+            <img src={cartIcon} alt="Cart" className="nav-icon" />
+            <span className="nav-icon-label">Cart</span>
+            {bagCount > 0 && <span className="cart-badge">{bagCount}</span>}
+          </button>
         </div>
       </div>
     </nav>

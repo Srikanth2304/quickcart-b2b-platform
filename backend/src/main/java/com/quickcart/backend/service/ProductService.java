@@ -185,6 +185,8 @@ public class ProductService {
                 .reviewsCount((int) reviewCount)
                 .stock(stock)
                 .isInStock(inStock)
+                .manufacturerId(product.getManufacturer() != null ? product.getManufacturer().getId() : null)
+                .manufacturerName(product.getManufacturer() != null ? product.getManufacturer().getName() : null)
                 .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
                 .category(product.getCategory() == null ? null : com.quickcart.backend.dto.CategoryResponse.builder()
                         .id(product.getCategory().getId())
