@@ -65,6 +65,7 @@ app:
     keySecret: ${APP_RAZORPAY_KEY_SECRET:}
     currency: ${APP_RAZORPAY_CURRENCY:INR}
     receiptPrefix: ${APP_RAZORPAY_RECEIPT_PREFIX:qc}
+    webhookSecret: ${APP_RAZORPAY_WEBHOOK_SECRET:}
 
 # JWT Security Configuration
 security:

@@ -1,0 +1,480 @@
+/* ===== Order Cancel Page ===== */
+.oc-page {
+  padding: 120px 24px 40px;
+  background: #f4f6fb;
+  min-height: 100vh;
+}
+
+/* Breadcrumb */
+.oc-breadcrumb {
+  max-width: 1200px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #888;
+}
+
+.oc-breadcrumb button {
+  border: none;
+  background: none;
+  color: #6c5ce7;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.oc-breadcrumb button:hover {
+  text-decoration: underline;
+}
+
+.oc-breadcrumb-sep {
+  color: #bbb;
+}
+
+.oc-breadcrumb-active {
+  color: #444;
+  font-weight: 600;
+}
+
+/* Layout */
+.oc-layout {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 20px;
+  align-items: start;
+}
+
+/* ── Step Cards ── */
+.oc-step-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(80, 80, 120, 0.06);
+  border: 1px solid #ececf3;
+  margin-bottom: 14px;
+  overflow: hidden;
+  opacity: 0.55;
+  transition: opacity 0.3s, box-shadow 0.3s;
+}
+
+.oc-step-card--active {
+  opacity: 1;
+  box-shadow: 0 4px 20px rgba(108, 92, 231, 0.1);
+  border-color: #d8d3f7;
+}
+
+.oc-step-card--locked {
+  pointer-events: none;
+}
+
+/* Step Header */
+.oc-step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #6c5ce7, #7c6cf0);
+  color: #fff;
+  cursor: default;
+}
+
+.oc-step-card--active .oc-step-header {
+  cursor: default;
+}
+
+.oc-step-card:not(.oc-step-card--active):not(.oc-step-card--locked) .oc-step-header {
+  background: #f6f5ff;
+  color: #444;
+  cursor: pointer;
+}
+
+.oc-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.oc-step-card:not(.oc-step-card--active) .oc-step-num {
+  background: #e8e4fd;
+  color: #6c5ce7;
+}
+
+.oc-step-num--done {
+  background: #27ae60 !important;
+  color: #fff !important;
+}
+
+.oc-step-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  flex: 1;
+}
+
+.oc-change-btn {
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: transparent;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  transition: all 0.15s;
+}
+
+.oc-step-card:not(.oc-step-card--active) .oc-change-btn {
+  border-color: #6c5ce7;
+  color: #6c5ce7;
+}
+
+.oc-change-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Step Body */
+.oc-step-body {
+  padding: 24px 28px 28px;
+}
+
+.oc-step-body--collapsed {
+  padding: 12px 28px 16px;
+  border-top: 1px solid #f0f0fa;
+}
+
+.oc-step-done-text {
+  font-size: 13px;
+  color: #555;
+}
+
+/* Labels & Inputs */
+.oc-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6c5ce7;
+  margin-bottom: 8px;
+}
+
+.oc-label--mt {
+  margin-top: 20px;
+}
+
+.oc-required {
+  color: #e74c3c;
+}
+
+.oc-optional {
+  color: #aaa;
+  font-weight: 400;
+  font-size: 12px;
+}
+
+.oc-select-wrap {
+  position: relative;
+}
+
+.oc-select {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 14px;
+  border: 1.5px solid #e0ddf5;
+  border-radius: 10px;
+  background: #faf9ff;
+  color: #333;
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='%236c5ce7'%3E%3Cpath d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 12px;
+}
+
+.oc-select:focus {
+  outline: none;
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.oc-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  font-size: 13px;
+  border: 1.5px solid #e0ddf5;
+  border-radius: 10px;
+  background: #faf9ff;
+  color: #333;
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.oc-textarea:focus {
+  outline: none;
+  border-color: #6c5ce7;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.1);
+}
+
+.oc-textarea::placeholder {
+  color: #bbb;
+}
+
+/* Buttons */
+.oc-step-actions {
+  margin-top: 24px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.oc-btn {
+  border: none;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 12px 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.oc-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.oc-btn--primary {
+  background: #6c5ce7;
+  color: #fff;
+}
+
+.oc-btn--primary:hover:not(:disabled) {
+  background: #5a4bd1;
+  box-shadow: 0 4px 14px rgba(108, 92, 231, 0.3);
+}
+
+.oc-btn--danger {
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: #fff;
+  padding: 14px 36px;
+}
+
+.oc-btn--danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #c0392b, #a93226);
+  box-shadow: 0 4px 14px rgba(231, 76, 60, 0.3);
+}
+
+/* Refund Options */
+.oc-refund-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 14px;
+}
+
+.oc-refund-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.oc-refund-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid #e0ddf5;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #faf9ff;
+}
+
+.oc-refund-option:hover {
+  border-color: #c8c2f5;
+  background: #f5f3ff;
+}
+
+.oc-refund-option--selected {
+  border-color: #6c5ce7;
+  background: #f0edff;
+  box-shadow: 0 0 0 3px rgba(108, 92, 231, 0.08);
+}
+
+.oc-radio {
+  accent-color: #6c5ce7;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.oc-refund-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.oc-refund-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+}
+
+.oc-refund-desc {
+  font-size: 11px;
+  color: #888;
+}
+
+.oc-terms {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+
+.oc-terms-link {
+  border: none;
+  background: none;
+  color: #6c5ce7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+/* ===== Sidebar ===== */
+.oc-side-card {
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(80, 80, 120, 0.06);
+  border: 1px solid #ececf3;
+  padding: 20px;
+  position: sticky;
+  top: 130px;
+}
+
+.oc-side-heading {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  color: #6c5ce7;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0edff;
+}
+
+.oc-item {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5fa;
+}
+
+.oc-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.oc-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.oc-item-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+  line-height: 1.45;
+  margin-bottom: 6px;
+}
+
+.oc-item-qty {
+  font-size: 12px;
+  color: #888;
+  margin-bottom: 6px;
+}
+
+.oc-item-price {
+  font-size: 17px;
+  font-weight: 700;
+  color: #222;
+}
+
+.oc-item-img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: #f8f8fc;
+  padding: 4px;
+  flex-shrink: 0;
+}
+
+.oc-item-img-placeholder {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f0edff, #e8f4ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 700;
+  color: #6c5ce7;
+  flex-shrink: 0;
+}
+
+/* States */
+.oc-loading {
+  text-align: center;
+  padding: 60px 20px;
+  font-size: 14px;
+  color: #888;
+}
+
+.oc-error {
+  max-width: 600px;
+  margin: 40px auto;
+  text-align: center;
+  padding: 24px;
+  background: #fff0f0;
+  border: 1px solid #ffcdd2;
+  border-radius: 14px;
+  color: #e53935;
+  font-size: 14px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .oc-page {
+    padding: 100px 12px 24px;
+  }
+  .oc-layout {
+    grid-template-columns: 1fr;
+  }
+  .oc-step-body {
+    padding: 18px 18px 22px;
+  }
+  .oc-side-card {
+    position: static;
+  }
+  .oc-item-img,
+  .oc-item-img-placeholder {
+    width: 56px;
+    height: 56px;
+  }
+}

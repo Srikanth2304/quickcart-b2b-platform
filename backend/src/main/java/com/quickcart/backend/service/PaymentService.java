@@ -184,7 +184,7 @@ public class PaymentService {
         ensureOrderConfirmedAndInvoiceExists(order, retailer);
     }
 
-    private void ensureOrderConfirmedAndInvoiceExists(Order order, User retailer) {
+    void ensureOrderConfirmedAndInvoiceExists(Order order, User retailer) {
         // Confirm order if not already confirmed
         if (order.getStatus() == OrderStatus.CREATED) {
             OrderStatus from = order.getStatus();

@@ -27,5 +27,10 @@ public class RazorpayProperties {
      * Optional: if set, the created Razorpay order will include a receipt.
      */
     private String receiptPrefix = "qc";
-}
 
+    /**
+     * Razorpay webhook secret used to verify inbound webhook signatures.
+     * Set via env var APP_RAZORPAY_WEBHOOK_SECRET in production.
+     */
+    private String webhookSecret;
+}

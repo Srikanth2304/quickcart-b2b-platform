@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface RefundRepository extends JpaRepository<Refund, Long> {
     Optional<Refund> findByOrderId(Long orderId);
 
+    Optional<Refund> findByPaymentId(Long paymentId);
+
     List<Refund> findByStatus(RefundStatus status);
 
     // Auto-complete refunds that have been processing for a long time.

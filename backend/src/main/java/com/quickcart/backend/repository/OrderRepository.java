@@ -1,6 +1,7 @@
 package com.quickcart.backend.repository;
 
 import com.quickcart.backend.entity.Order;
+import com.quickcart.backend.entity.OrderStatus;
 import com.quickcart.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -8,6 +9,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
@@ -47,6 +49,22 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     @Query("SELECT o.id FROM Order o WHERE o.manufacturer = :manufacturer")
     Page<Long> findIdsByManufacturer(@Param("manufacturer") User manufacturer, Pageable pageable);
+
+    /**
+     * Pagination-safe: fetch IDs filtered by statuses for retailer.
+     */
+    @Query("SELECT o.id FROM Order o WHERE o.retailer = :retailer AND o.status IN :statuses")
+    Page<Long> findIdsByRetailerAndStatusIn(@Param("retailer") User retailer,
+                                            @Param("statuses") List<OrderStatus> statuses,
+                                            Pageable pageable);
+
+    /**
+     * Pagination-safe: fetch IDs filtered by statuses for manufacturer.
+     */
+    @Query("SELECT o.id FROM Order o WHERE o.manufacturer = :manufacturer AND o.status IN :statuses")
+    Page<Long> findIdsByManufacturerAndStatusIn(@Param("manufacturer") User manufacturer,
+                                                @Param("statuses") List<OrderStatus> statuses,
+                                                Pageable pageable);
 
     /**
      * Fetch orders with all required relations for a set of ids.
@@ -92,4 +110,33 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "LEFT JOIN FETCH i.product " +
            "WHERE o.id = :id")
     Optional<Order> findByIdWithRelations(@Param("id") Long id);
+
+    /**
+     * Single-query aggregation: order summary counts for a retailer.
+     * Uses conditional SUM to compute all buckets in one DB round trip.
+     */
+    @Query("SELECT COUNT(o), " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CREATED, " +
+           "    com.quickcart.backend.entity.OrderStatus.CONFIRMED, " +
+           "    com.quickcart.backend.entity.OrderStatus.ACCEPTED, " +
+           "    com.quickcart.backend.entity.OrderStatus.SHIPPED) THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN o.status = com.quickcart.backend.entity.OrderStatus.DELIVERED THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CANCELLED, " +
+           "    com.quickcart.backend.entity.OrderStatus.REJECTED) THEN 1 ELSE 0 END) " +
+           "FROM Order o WHERE o.retailer = :user")
+    Object[] getOrderSummaryForRetailer(@Param("user") User user);
+
+    /**
+     * Single-query aggregation: order summary counts for a manufacturer.
+     */
+    @Query("SELECT COUNT(o), " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CREATED, " +
+           "    com.quickcart.backend.entity.OrderStatus.CONFIRMED, " +
+           "    com.quickcart.backend.entity.OrderStatus.ACCEPTED, " +
+           "    com.quickcart.backend.entity.OrderStatus.SHIPPED) THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN o.status = com.quickcart.backend.entity.OrderStatus.DELIVERED THEN 1 ELSE 0 END), " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CANCELLED, " +
+           "    com.quickcart.backend.entity.OrderStatus.REJECTED) THEN 1 ELSE 0 END) " +
+           "FROM Order o WHERE o.manufacturer = :user")
+    Object[] getOrderSummaryForManufacturer(@Param("user") User user);
 }

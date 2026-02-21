@@ -12,6 +12,8 @@ import RetailerInvoices from "./pages/RetailerInvoices";
 import RetailerWishlist from "./pages/RetailerWishlist";
 import RetailerBag from "./pages/RetailerBag";
 import OrderSuccess from "./pages/OrderSuccess";
+import OrderDetails from "./pages/OrderDetails";
+import OrderCancel from "./pages/OrderCancel";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import Navbar from "./components/Navbar";
 import Toast from "./components/Toast";
@@ -148,6 +150,24 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["RETAILER"]}>
               <RetailerBag />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders/:orderId"
+          element={
+            <ProtectedRoute allowedRoles={["RETAILER"]}>
+              <OrderDetails />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/orders/:orderId/cancel"
+          element={
+            <ProtectedRoute allowedRoles={["RETAILER"]}>
+              <OrderCancel />
             </ProtectedRoute>
           }
         />

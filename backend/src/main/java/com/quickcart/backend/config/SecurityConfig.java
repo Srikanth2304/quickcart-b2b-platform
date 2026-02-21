@@ -40,6 +40,9 @@ public class SecurityConfig {
                         // ✅ AUTH API: login only (invite-only onboarding)
                         .requestMatchers("/auth/login").permitAll()
 
+                        // ✅ RAZORPAY WEBHOOK: no JWT — secured via HMAC signature verification
+                        .requestMatchers("/webhooks/razorpay").permitAll()
+
                         // ✅ EVERYTHING ELSE NEEDS AUTH
                         .anyRequest().authenticated()
                 )

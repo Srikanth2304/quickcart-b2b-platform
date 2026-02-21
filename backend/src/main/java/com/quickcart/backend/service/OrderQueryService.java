@@ -3,8 +3,10 @@ package com.quickcart.backend.service;
 import com.quickcart.backend.dto.OrderItemResponse;
 import com.quickcart.backend.dto.OrderPaymentResponse;
 import com.quickcart.backend.dto.OrderResponse;
+import com.quickcart.backend.dto.OrderSummaryResponse;
 import com.quickcart.backend.entity.Order;
 import com.quickcart.backend.entity.OrderItem;
+import com.quickcart.backend.entity.OrderStatus;
 import com.quickcart.backend.entity.Payment;
 import com.quickcart.backend.entity.User;
 import com.quickcart.backend.exception.AccessDeniedException;
@@ -32,11 +34,49 @@ public class OrderQueryService {
     private final PaymentRepository paymentRepository;
 
     /**
-     * Get paginated orders for authenticated user.
+     * Status group name → constituent OrderStatus values.
+     */
+    private static final Map<String, List<OrderStatus>> STATUS_GROUPS = Map.of(
+            "ACTIVE", List.of(OrderStatus.CREATED, OrderStatus.CONFIRMED, OrderStatus.ACCEPTED, OrderStatus.SHIPPED),
+            "DELIVERED", List.of(OrderStatus.DELIVERED),
+            "CANCELLED", List.of(OrderStatus.CANCELLED, OrderStatus.REJECTED)
+    );
+
+    /**
+     * Resolve a status filter string to a list of OrderStatus values.
+     * Supports both group names (ACTIVE, DELIVERED, CANCELLED) and individual enum values.
+     *
+     * @return list of OrderStatus values, or null if no filter
+     */
+    private List<OrderStatus> resolveStatusFilter(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+        String upper = status.trim().toUpperCase();
+
+        // Check group names first
+        List<OrderStatus> group = STATUS_GROUPS.get(upper);
+        if (group != null) {
+            return group;
+        }
+
+        // Fall back to individual enum value
+        try {
+            return List.of(OrderStatus.valueOf(upper));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Invalid status filter: " + status +
+                    ". Allowed values: ACTIVE, DELIVERED, CANCELLED, or any OrderStatus enum value.");
+        }
+    }
+
+    /**
+     * Get paginated orders for authenticated user, optionally filtered by status group.
      * Manufacturer → orders received
      * Retailer → orders placed
      */
-    public Page<OrderResponse> getOrders(User user, Pageable pageable) {
+    public Page<OrderResponse> getOrders(User user, String status, Pageable pageable) {
+
+        List<OrderStatus> statuses = resolveStatusFilter(status);
 
         // Production-safe pagination:
         // 1) paginate over IDs (no fetch joins)
@@ -44,9 +84,13 @@ public class OrderQueryService {
         Page<Long> idsPage;
 
         if (user.hasRole("MANUFACTURER")) {
-            idsPage = orderRepository.findIdsByManufacturer(user, pageable);
+            idsPage = statuses != null
+                    ? orderRepository.findIdsByManufacturerAndStatusIn(user, statuses, pageable)
+                    : orderRepository.findIdsByManufacturer(user, pageable);
         } else {
-            idsPage = orderRepository.findIdsByRetailer(user, pageable);
+            idsPage = statuses != null
+                    ? orderRepository.findIdsByRetailerAndStatusIn(user, statuses, pageable)
+                    : orderRepository.findIdsByRetailer(user, pageable);
         }
 
         List<Long> ids = idsPage.getContent();
@@ -69,6 +113,49 @@ public class OrderQueryService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(content, pageable, idsPage.getTotalElements());
+    }
+
+    /**
+     * Backward-compatible overload: no status filter.
+     */
+    public Page<OrderResponse> getOrders(User user, Pageable pageable) {
+        return getOrders(user, null, pageable);
+    }
+
+    /**
+     * Get aggregated order summary counts for the authenticated user.
+     * Single DB round trip using conditional SUM.
+     */
+    public OrderSummaryResponse getOrderSummary(User user) {
+        Object[] row;
+        if (user.hasRole("MANUFACTURER")) {
+            row = orderRepository.getOrderSummaryForManufacturer(user);
+        } else {
+            row = orderRepository.getOrderSummaryForRetailer(user);
+        }
+
+        // The query returns a single row: [total, active, delivered, cancelled]
+        // When there are no orders, COUNT returns 0 but SUM returns null.
+        Object[] cols = (row instanceof Object[] && row.length == 1 && row[0] instanceof Object[])
+                ? (Object[]) row[0]
+                : row;
+
+        long total     = toLong(cols[0]);
+        long active    = toLong(cols[1]);
+        long delivered = toLong(cols[2]);
+        long cancelled = toLong(cols[3]);
+
+        return OrderSummaryResponse.builder()
+                .total(total)
+                .active(active)
+                .delivered(delivered)
+                .cancelled(cancelled)
+                .build();
+    }
+
+    private static long toLong(Object value) {
+        if (value == null) return 0L;
+        return ((Number) value).longValue();
     }
 
     /**

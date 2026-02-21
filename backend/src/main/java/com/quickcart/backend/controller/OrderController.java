@@ -6,6 +6,7 @@ import com.quickcart.backend.dto.InvoiceResponse;
 import com.quickcart.backend.dto.OrderCreatedResponse;
 import com.quickcart.backend.dto.OrderEventResponse;
 import com.quickcart.backend.dto.OrderResponse;
+import com.quickcart.backend.dto.OrderSummaryResponse;
 import com.quickcart.backend.dto.PlaceOrderRequest;
 import com.quickcart.backend.dto.RejectOrderRequest;
 import com.quickcart.backend.dto.RefundDecisionRequest;
@@ -55,16 +56,31 @@ public class OrderController {
     }
 
     /**
-     * ✅ PAGINATED ORDERS
+     * ✅ ORDER SUMMARY COUNTS (single DB round trip)
+     * Returns aggregated counts: total, active, delivered, cancelled.
+     */
+    @GetMapping("/summary")
+    public ResponseEntity<OrderSummaryResponse> getOrderSummary(
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        return ResponseEntity.ok(
+                orderQueryService.getOrderSummary(currentUser.getUser())
+        );
+    }
+
+    /**
+     * ✅ PAGINATED ORDERS (with optional status filtering)
      */
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getOrders(
             @AuthenticationPrincipal CustomUserDetails currentUser,
+            @RequestParam(required = false) String status,
             Pageable pageable
     ) {
         return ResponseEntity.ok(
                 orderQueryService.getOrders(
                         currentUser.getUser(),
+                        status,
                         pageable
                 )
         );

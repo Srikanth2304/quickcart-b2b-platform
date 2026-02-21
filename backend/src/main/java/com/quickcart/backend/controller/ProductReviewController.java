@@ -49,6 +49,21 @@ public class ProductReviewController {
         return ResponseEntity.ok(MessageResponse.builder().message("Review saved successfully").build());
     }
 
+    /**
+     * Alias: POST /products/{productId}/reviews
+     * Delegates to the same upsert logic (one review per user per product).
+     */
+    @PostMapping
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<MessageResponse> createOrUpdateReview(
+            @PathVariable Long productId,
+            @Valid @RequestBody UpsertProductReviewRequest request,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        productReviewService.upsertReview(productId, currentUser.getUser(), request);
+        return ResponseEntity.ok(MessageResponse.builder().message("Review saved successfully").build());
+    }
+
     @DeleteMapping("/me")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<MessageResponse> deleteMyReview(
