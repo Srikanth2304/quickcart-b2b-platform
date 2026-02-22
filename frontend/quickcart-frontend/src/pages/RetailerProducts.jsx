@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import "./RetailerProducts.css";
 
 export default function RetailerProducts() {
@@ -497,7 +498,7 @@ export default function RetailerProducts() {
               onClick={stopPropagation}
             >
               {facetsLoading ? (
-                <div className="filters-empty">Loading...</div>
+                <div className="filters-empty"><Loader size="sm" /></div>
               ) : categoryOptions.length === 0 ? (
                 <div className="filters-empty">No categories</div>
               ) : (
@@ -530,7 +531,7 @@ export default function RetailerProducts() {
               onClick={stopPropagation}
             >
               {facetsLoading ? (
-                <div className="filters-empty">Loading...</div>
+                <div className="filters-empty"><Loader size="sm" /></div>
               ) : sortedBrandCounts.length === 0 ? (
                 <div className="filters-empty">No brands</div>
               ) : (
@@ -797,6 +798,12 @@ export default function RetailerProducts() {
           </div>
 
           {error && <div className="retailer-products-error">{error}</div>}
+
+          {loading && !error && (
+            <div style={{ display: "flex", justifyContent: "center", padding: "48px 0" }}>
+              <Loader size="lg" text="Loading products…" />
+            </div>
+          )}
 
           <div className={`retailer-products-grid ${loading ? "is-loading" : ""}`}>
             {sortedProducts.map((product) => {

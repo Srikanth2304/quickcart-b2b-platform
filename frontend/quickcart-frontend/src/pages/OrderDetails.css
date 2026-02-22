@@ -288,6 +288,32 @@
   text-align: center;
 }
 
+/* ===== Shipment Info ===== */
+.od-shipment-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 14px;
+  margin-top: 8px;
+  background: #f8f9ff;
+  border-radius: 8px;
+  border: 1px solid #e8e6f5;
+  font-size: 12px;
+  color: #555;
+}
+
+.od-shipment-carrier {
+  font-weight: 600;
+  color: #333;
+}
+
+.od-shipment-tracking {
+  font-family: monospace;
+  color: #6c5ce7;
+  font-size: 12px;
+  word-break: break-all;
+}
+
 /* See All Updates */
 .od-see-updates {
   border: none;
@@ -490,6 +516,25 @@
 
 .od-review-expand-btn:hover {
   background: #f0edff;
+}
+
+.od-review-edit-btn {
+  background: none;
+  border: 1px solid #e5e5ea;
+  color: #6c5ce7;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  padding: 5px 14px;
+  border-radius: 8px;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.od-review-edit-btn:hover {
+  background: #f0edff;
+  border-color: #6c5ce7;
 }
 
 /* Submitted review display */
@@ -791,6 +836,21 @@
   font-size: 11px;
   color: #6c5ce7;
   word-break: break-all;
+}
+
+.od-cod-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.od-cod-status--collected {
+  color: #16a34a;
+}
+.od-cod-status--pending {
+  color: #d97706;
 }
 
 /* ---------- States ---------- */
@@ -1279,4 +1339,30 @@
   color: #888;
   text-align: center;
   padding: 18px 24px;
+}
+
+.od-refund-refresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 8px 18px;
+  background: #f0edff;
+  color: #6c5ce7;
+  border: 1px solid #e0ddf5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.od-refund-refresh:hover:not(:disabled) {
+  background: #e0ddf5;
+  transform: translateY(-1px);
+}
+
+.od-refund-refresh:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }

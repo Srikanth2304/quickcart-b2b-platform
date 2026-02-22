@@ -34,6 +34,11 @@ public class Order extends BaseAuditableEntity {
     @Column(nullable = false)
     private OrderStatus status;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", nullable = false)
+    @Builder.Default
+    private PaymentMethod paymentMethod = PaymentMethod.ONLINE;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal totalAmount;
 
@@ -72,6 +77,9 @@ public class Order extends BaseAuditableEntity {
     @Column(name = "delivered_at")
     private LocalDateTime deliveredAt;
 
+    @Column(name = "accepted_at")
+    private LocalDateTime acceptedAt;
+
     @OneToMany(
             mappedBy = "order",
             cascade = CascadeType.ALL,
@@ -84,7 +92,7 @@ public class Order extends BaseAuditableEntity {
         applyAuditOnCreate();
         // Keep original business default
         if (this.status == null) {
-            this.status = OrderStatus.CREATED;
+            this.status = OrderStatus.PAYMENT_PENDING;
         }
     }
 

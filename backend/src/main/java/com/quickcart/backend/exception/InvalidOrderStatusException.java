@@ -6,11 +6,10 @@ package com.quickcart.backend.exception;
 public class InvalidOrderStatusException extends ApplicationException {
 
     public InvalidOrderStatusException(Long orderId, String currentStatus) {
-        super("Order with ID: " + orderId + " has status '" + currentStatus + "' but must be 'CREATED' to process payment");
+        super("Order with ID: " + orderId + " has status '" + currentStatus + "' but must be 'PAYMENT_PENDING' to process payment");
     }
 
     public InvalidOrderStatusException(String message) {
         super(message);
     }
 }
-

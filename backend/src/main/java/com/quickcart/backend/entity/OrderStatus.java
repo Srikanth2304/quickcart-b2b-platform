@@ -1,7 +1,7 @@
 package com.quickcart.backend.entity;
 
 public enum OrderStatus {
-    CREATED,
+    PAYMENT_PENDING,
     CONFIRMED,
     ACCEPTED,
     REJECTED,

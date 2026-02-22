@@ -87,8 +87,8 @@ public class PaymentService {
             }
         }
 
-        // For a brand new payment, only CREATED orders are payable.
-        if (order.getStatus() != OrderStatus.CREATED) {
+        // For a brand new payment, only PAYMENT_PENDING orders are payable.
+        if (order.getStatus() != OrderStatus.PAYMENT_PENDING) {
             throw new InvalidOrderStatusException(order.getId(), order.getStatus().toString());
         }
 
@@ -186,7 +186,7 @@ public class PaymentService {
 
     void ensureOrderConfirmedAndInvoiceExists(Order order, User retailer) {
         // Confirm order if not already confirmed
-        if (order.getStatus() == OrderStatus.CREATED) {
+        if (order.getStatus() == OrderStatus.PAYMENT_PENDING) {
             OrderStatus from = order.getStatus();
             order.setStatus(OrderStatus.CONFIRMED);
             order.setUpdatedBy(retailer);

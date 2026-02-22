@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import "./OrderDetails.css";
 
 function formatCurrency(value) {
@@ -10,9 +12,10 @@ function formatCurrency(value) {
 }
 
 const TRACKING_STEPS = [
-  { key: "CONFIRMED", label: "Order Confirmed" },
+  { key: "PAYMENT_PENDING", label: "Order Placed" },
+  { key: "CONFIRMED", label: "Payment Confirmed" },
+  { key: "ACCEPTED", label: "Accepted by Seller" },
   { key: "SHIPPED", label: "Shipped" },
-  { key: "OUT_FOR_DELIVERY", label: "Out For Delivery" },
   { key: "DELIVERED", label: "Delivered" },
 ];
 
@@ -23,11 +26,12 @@ function isRefundPending(status) {
 
 function getStepIndex(status) {
   const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
-  if (s.includes("DELIVER") && !s.includes("OUT")) return 3;
-  if (s.includes("OUT")) return 2;
-  if (s.includes("SHIP")) return 1;
-  if (s.includes("CONFIRM") || s.includes("PLACED")) return 0;
-  return 0;
+  if (s.includes("DELIVER") && !s.includes("OUT")) return 4;
+  if (s.includes("OUT")) return 3;
+  if (s.includes("SHIP")) return 3;
+  if (s.includes("ACCEPT")) return 2;
+  if (s.includes("CONFIRM")) return 1;
+  return 0; // PAYMENT_PENDING or CREATED
 }
 
 function formatDate(dateStr) {
@@ -102,6 +106,22 @@ export default function OrderDetails() {
   const [reviewDrafts, setReviewDrafts] = useState({}); // { productId: { rating, comment } }
   const [reviewSubmitting, setReviewSubmitting] = useState({});
   const [expandedReview, setExpandedReview] = useState(null); // productId of open review form
+  const [editingReview, setEditingReview] = useState(null);   // productId currently being edited
+  const [refundRefreshing, setRefundRefreshing] = useState(false);
+
+  /* Helper: refresh refund status */
+  const refreshRefund = async () => {
+    if (!orderId) return;
+    setRefundRefreshing(true);
+    try {
+      const res = await api.get(`/orders/${orderId}/refund`);
+      setRefund(res?.data || null);
+    } catch {
+      // no refund yet
+    } finally {
+      setRefundRefreshing(false);
+    }
+  };
 
   useEffect(() => {
     if (!orderId) {
@@ -141,28 +161,37 @@ export default function OrderDetails() {
         );
         if (isMounted) setProductImages(imgMap);
 
-        // Fetch existing reviews for each product
-        const revMap = {};
-        await Promise.allSettled(
-          orderItems.map(async (item) => {
-            if (!item.productId) return;
-            try {
-              const rRes = await api.get(`/products/${item.productId}/reviews/my`);
-              if (rRes?.data) {
-                revMap[item.productId] = {
-                  rating: rRes.data.rating || 0,
-                  comment: rRes.data.comment || rRes.data.review || "",
-                  submitted: true,
-                };
+        // Fetch existing reviews only for delivered orders (review section is only visible then)
+        const orderStatusUpper = (orderData?.status || "").toUpperCase();
+        const isOrderDelivered = orderStatusUpper.includes("DELIVER") && !orderStatusUpper.includes("OUT");
+        if (isOrderDelivered) {
+          const revMap = {};
+          await Promise.allSettled(
+            orderItems.map(async (item) => {
+              if (!item.productId) return;
+              try {
+                const rRes = await api.get(`/products/${item.productId}/reviews/my`, {
+                  validateStatus: () => true, // never throw — we inspect status ourselves
+                });
+                if (rRes?.status === 200 && rRes?.data && rRes.data.rating) {
+                  revMap[item.productId] = {
+                    rating: rRes.data.rating,
+                    comment: rRes.data.comment || rRes.data.review || "",
+                    submitted: true,
+                  };
+                }
+                // Any non-200 (404, 500, etc.) → no review yet — normal state
+              } catch {
+                // Network error — silently skip, user can still write a review
               }
-            } catch { /* no review exists yet */ }
-          })
-        );
-        if (isMounted) setReviews(revMap);
+            })
+          );
+          if (isMounted) setReviews(revMap);
+        }
 
-        // Fetch refund info if order is cancelled
+        // Fetch refund info if order is cancelled/rejected (always attempt)
         const orderStatus = (orderData?.status || "").toUpperCase();
-        if (orderStatus.includes("CANCEL") || orderStatus.includes("REJECTED")) {
+        if (orderStatus.includes("CANCEL") || orderStatus.includes("REJECT")) {
           try {
             setRefundLoading(true);
             const refundRes = await api.get(`/orders/${orderId}/refund`);
@@ -187,20 +216,91 @@ export default function OrderDetails() {
     };
   }, [orderId, navigate]);
 
+  /* Auto-poll refund status when refund is in a non-final state */
+  useEffect(() => {
+    if (!orderId || !order) return;
+    const orderStatus = (order.status || "").toUpperCase();
+    const isCancelledOrRejected = orderStatus.includes("CANCEL") || orderStatus.includes("REJECT");
+    if (!isCancelledOrRejected) return;
+
+    // No refund for COD orders
+    const isCod = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
+    if (isCod) return;
+
+    // Only poll when refund is in a transitional state (or no refund yet)
+    const refundStatus = (refund?.status || "").toUpperCase();
+    const isFinal = ["PROCESSED", "REJECTED", "FAILED"].includes(refundStatus);
+    if (isFinal) return;
+
+    const controller = new AbortController();
+    let errorCount = 0;
+    const MAX_ERRORS = 10;
+    const BASE_DELAY = 15000; // 15s
+
+    const poll = async () => {
+      try {
+        const res = await api.get(`/orders/${orderId}/refund`, {
+          signal: controller.signal,
+        });
+        const newRefund = res?.data || null;
+        errorCount = 0; // reset on success
+        setRefund((prev) => {
+          if (prev?.status !== newRefund?.status) return newRefund;
+          return prev;
+        });
+      } catch (err) {
+        if (err?.name === "CanceledError" || controller.signal.aborted) return;
+        errorCount++;
+      }
+
+      // Stop polling after too many consecutive errors
+      if (errorCount >= MAX_ERRORS || controller.signal.aborted) return;
+
+      // Exponential backoff on errors
+      const delay = errorCount > 0 ? BASE_DELAY * Math.pow(1.5, errorCount) : BASE_DELAY;
+      timerId = setTimeout(poll, Math.min(delay, 120000)); // cap at 2 min
+    };
+
+    let timerId = setTimeout(poll, BASE_DELAY);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timerId);
+    };
+  }, [orderId, order?.status, refund?.status]);
+
   const handleCancelOrder = async () => {
     setCancelling(true);
     try {
       await api.post(`/orders/${orderId}/cancel`);
-      setOrder((prev) => (prev ? { ...prev, status: "CANCELLED" } : prev));
+      // Re-fetch the full order to get accurate status
+      try {
+        const res = await api.get(`/orders/${orderId}`);
+        setOrder(res?.data || null);
+      } catch {
+        setOrder((prev) => (prev ? { ...prev, status: "CANCELLED" } : prev));
+      }
       setShowCancelModal(false);
-    } catch {
-      alert("Failed to cancel order. Please try again.");
+      showToast("Order cancelled successfully", "success");
+      // Fetch refund data (backend may auto-create refund on cancel)
+      try {
+        const rRes = await api.get(`/orders/${orderId}/refund`);
+        setRefund(rRes?.data || null);
+      } catch {
+        // refund not yet created — polling will pick it up
+      }
+    } catch (err) {
+      if (!navigator.onLine || err?.code === "ERR_NETWORK") {
+        showToast("No internet connection. Please try again.", "error");
+      } else {
+        showToast(err?.response?.data?.message || "Failed to cancel order. Please try again.", "error");
+      }
     } finally {
       setCancelling(false);
     }
   };
 
-  /* Submit a review */
+  /* Submit a review (create or update — backend upserts) */
   const handleSubmitReview = async (productId) => {
     const draft = reviewDrafts[productId];
     if (!draft?.rating) return;
@@ -210,13 +310,32 @@ export default function OrderDetails() {
         rating: draft.rating,
         comment: draft.comment || "",
       });
-      setReviews((p) => ({ ...p, [productId]: { ...draft, submitted: true } }));
+      setReviews((p) => ({ ...p, [productId]: { rating: draft.rating, comment: draft.comment || "", submitted: true } }));
       setExpandedReview(null);
+      setEditingReview(null);
     } catch {
-      alert("Failed to submit review. Please try again.");
+      showToast("Failed to submit review. Please try again.", "error");
     } finally {
       setReviewSubmitting((p) => ({ ...p, [productId]: false }));
     }
+  };
+
+  /* Enter edit mode — populate draft from existing review */
+  const handleEditReview = (productId) => {
+    const existing = reviews[productId];
+    if (!existing) return;
+    setReviewDrafts((p) => ({
+      ...p,
+      [productId]: { rating: existing.rating, comment: existing.comment || "" },
+    }));
+    setEditingReview(productId);
+    setExpandedReview(productId);
+  };
+
+  /* Cancel edit — restore to submitted state */
+  const handleCancelEdit = (productId) => {
+    setEditingReview(null);
+    setExpandedReview(null);
   };
 
   const updateDraft = (productId, field, value) => {
@@ -230,10 +349,15 @@ export default function OrderDetails() {
 
   const status = order?.status || "";
   const activeStep = getStepIndex(status);
-  const isDelivered = activeStep >= 3;
-  const isCancelled =
-    status.toUpperCase().includes("CANCEL") ||
-    status.toUpperCase().includes("REJECTED");
+  const isDelivered = activeStep >= 4;
+  const statusUpper = status.toUpperCase().replace(/[\s-]/g, "_");
+  const isCancelled = statusUpper.includes("CANCEL");
+  const isRejected = statusUpper.includes("REJECT");
+  const isCancelledOrRejected = isCancelled || isRejected;
+
+  // Cancel allowed ONLY for: PAYMENT_PENDING, CONFIRMED, ACCEPTED (strict backend rule)
+  const CANCELLABLE = ["PAYMENT_PENDING", "CONFIRMED", "ACCEPTED"];
+  const canCancel = CANCELLABLE.includes(statusUpper);
 
   const orderDate = order?.orderDate || order?.createdAt || order?.placedAt || "";
   const deliveryDate =
@@ -250,6 +374,8 @@ export default function OrderDetails() {
     order?.paymentId ||
     order?.razorpayPaymentId ||
     "";
+  const paymentStatus = order?.paymentStatus || order?.payment?.status || "";
+  const isCodOrder = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
 
   // Address
   const addr = order?.deliveryAddress || order?.address || {};
@@ -291,7 +417,7 @@ export default function OrderDetails() {
         {/* ===== Main Section ===== */}
         <section className="od-main">
           {loading && (
-            <div className="od-card od-state">Loading order details…</div>
+            <div className="od-card od-state"><Loader text="Loading order details…" /></div>
           )}
           {!loading && error && (
             <div className="od-card od-error">{error}</div>
@@ -299,19 +425,6 @@ export default function OrderDetails() {
 
           {!loading && !error && order && (
             <>
-              {/* Online‑pay banner */}
-              {!isDelivered && !isCancelled && (
-                <div className="od-banner">
-                  <span>Pay online for a smooth doorstep experience</span>
-                  <button
-                    type="button"
-                    className="od-banner-btn"
-                    onClick={() => navigate("/retailer/orders")}
-                  >
-                    Pay ₹{formatCurrency(totalAmount)}
-                  </button>
-                </div>
-              )}
 
               {/* Product cards */}
               {items.length > 0 ? (
@@ -364,7 +477,7 @@ export default function OrderDetails() {
 
                       {/* ===== Tracking Timeline ===== */}
                       <div className="od-timeline">
-                        {isCancelled ? (
+                        {isCancelledOrRejected ? (
                           <>
                             {/* Confirmed step */}
                             <div className="od-step od-step--done">
@@ -383,14 +496,14 @@ export default function OrderDetails() {
                                 )}
                               </div>
                             </div>
-                            {/* Cancelled step */}
+                            {/* Cancelled / Rejected step */}
                             <div className="od-step od-step--done od-step--cancelled">
                               <div className="od-step-dot-col">
                                 <span className="od-step-dot od-step-dot--cancelled" />
                               </div>
                               <div className="od-step-text">
                                 <span className="od-step-label">
-                                  Cancelled{cancelledDate ? `, ${formatDate(cancelledDate)}` : ""}
+                                  {isRejected ? "Rejected" : "Cancelled"}{cancelledDate ? `, ${formatDate(cancelledDate)}` : ""}
                                 </span>
                               </div>
                             </div>
@@ -402,9 +515,13 @@ export default function OrderDetails() {
                             let sub = "";
                             if (i === 0 && orderDate)
                               sub = `Your order has been placed, ${formatDate(orderDate)}`;
-                            if (i === 1 && shippedDate)
-                              sub = `Expected By ${formatDate(shippedDate)}`;
-                            if (i === 3 && deliveryDate)
+                            if (i === 1 && order?.confirmedAt)
+                              sub = `Payment confirmed, ${formatDate(order.confirmedAt)}`;
+                            if (i === 2 && order?.acceptedAt)
+                              sub = `Seller accepted your order`;
+                            if (i === 3 && shippedDate)
+                              sub = `Shipped on ${formatDate(shippedDate)}`;
+                            if (i === 4 && deliveryDate)
                               sub = `${formatDate(deliveryDate)}`;
 
                             return (
@@ -441,6 +558,22 @@ export default function OrderDetails() {
                         )}
                       </div>
 
+                      {/* Shipment details */}
+                      {(order?.trackingNumber || order?.shipment?.trackingNumber || order?.carrierName || order?.shipment?.carrier) && (
+                        <div className="od-shipment-info">
+                          {(order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName) && (
+                            <span className="od-shipment-carrier">
+                              🚚 {order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName}
+                            </span>
+                          )}
+                          {(order?.trackingNumber || order?.shipment?.trackingNumber) && (
+                            <span className="od-shipment-tracking">
+                              Tracking: {order?.trackingNumber || order?.shipment?.trackingNumber}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       <button type="button" className="od-see-updates" onClick={() => setShowUpdatesModal(true)}>
                         See All Updates &gt;
                       </button>
@@ -462,7 +595,7 @@ export default function OrderDetails() {
                   </div>
 
                   <div className="od-timeline">
-                    {isCancelled ? (
+                    {isCancelledOrRejected ? (
                       <>
                         <div className="od-step od-step--done">
                           <div className="od-step-dot-col">
@@ -481,7 +614,7 @@ export default function OrderDetails() {
                           </div>
                           <div className="od-step-text">
                             <span className="od-step-label">
-                              Cancelled{cancelledDate ? `, ${formatDate(cancelledDate)}` : ""}
+                              {isRejected ? "Rejected" : "Cancelled"}{cancelledDate ? `, ${formatDate(cancelledDate)}` : ""}
                             </span>
                           </div>
                         </div>
@@ -493,9 +626,13 @@ export default function OrderDetails() {
                         let sub = "";
                         if (i === 0 && orderDate)
                           sub = `Your order has been placed, ${formatDate(orderDate)}`;
-                        if (i === 1 && shippedDate)
-                          sub = `Expected By ${formatDate(shippedDate)}`;
-                        if (i === 3 && deliveryDate)
+                        if (i === 1 && order?.confirmedAt)
+                          sub = `Payment confirmed, ${formatDate(order.confirmedAt)}`;
+                        if (i === 2 && order?.acceptedAt)
+                          sub = `Seller accepted your order`;
+                        if (i === 3 && shippedDate)
+                          sub = `Shipped on ${formatDate(shippedDate)}`;
+                        if (i === 4 && deliveryDate)
                           sub = `${formatDate(deliveryDate)}`;
 
                         return (
@@ -539,7 +676,7 @@ export default function OrderDetails() {
               )}
 
               {/* Delivery exec note */}
-              {!isDelivered && !isCancelled && (
+              {!isDelivered && !isCancelledOrRejected && (
                 <div className="od-card od-note">
                   Delivery Executive details will be available once the order is
                   out for delivery
@@ -547,7 +684,7 @@ export default function OrderDetails() {
               )}
 
               {/* Action buttons */}
-              {!isCancelled && !isDelivered && (
+              {canCancel && (
                 <div className="od-card od-actions">
                   <button
                     type="button"
@@ -565,7 +702,16 @@ export default function OrderDetails() {
                 </div>
               )}
 
-              {isCancelled && (
+              {/* Chat only for shipped (no cancel allowed) */}
+              {!isCancelledOrRejected && !isDelivered && !canCancel && (
+                <div className="od-card od-actions od-actions--single">
+                  <button type="button" className="od-action-btn od-action-chat">
+                    💬 Chat with us
+                  </button>
+                </div>
+              )}
+
+              {isCancelledOrRejected && (
                 <div className="od-card od-actions od-actions--single">
                   <button
                     type="button"
@@ -576,8 +722,8 @@ export default function OrderDetails() {
                 </div>
               )}
 
-              {/* Refund Status Card */}
-              {isCancelled && !refundLoading && refund && (
+              {/* Refund Status Card (online payments only) */}
+              {isCancelledOrRejected && !isCodOrder && !refundLoading && refund && (
                 <div className={`od-card od-refund-card od-refund-card--${isRefundPending(refund.status) ? "pending" : (refund.status || "").toLowerCase()}`}>
                   <div className="od-refund-header">
                     <span className="od-refund-icon">
@@ -638,13 +784,25 @@ export default function OrderDetails() {
                         </div>
                       )}
                     </div>
+
+                    {/* Refresh button for non-final statuses */}
+                    {!["PROCESSED", "REJECTED", "FAILED"].includes(refund.status) && (
+                      <button
+                        type="button"
+                        className="od-refund-refresh"
+                        disabled={refundRefreshing}
+                        onClick={refreshRefund}
+                      >
+                        {refundRefreshing ? "Checking…" : "🔄 Refresh Status"}
+                      </button>
+                    )}
                   </div>
                 </div>
               )}
 
-              {isCancelled && refundLoading && (
+              {isCancelledOrRejected && !isCodOrder && refundLoading && (
                 <div className="od-card od-refund-loading">
-                  Checking refund status…
+                  <Loader size="sm" text="Checking refund status…" />
                 </div>
               )}
 
@@ -663,8 +821,16 @@ export default function OrderDetails() {
                     const existing = reviews[item.productId];
                     const draft = reviewDrafts[item.productId] || { rating: 0, comment: "" };
                     const isOpen = expandedReview === item.productId;
+                    const isEditing = editingReview === item.productId;
                     const submitting = reviewSubmitting[item.productId];
-                    const displayRating = existing?.submitted ? existing.rating : draft.rating;
+                    const canEdit = existing?.submitted && isEditing;
+                    const displayRating = (canEdit || isOpen) && !existing?.submitted
+                      ? draft.rating
+                      : canEdit
+                        ? draft.rating
+                        : existing?.submitted
+                          ? existing.rating
+                          : draft.rating;
 
                     return (
                       <div className="od-review-item" key={item.productId || idx}>
@@ -676,50 +842,78 @@ export default function OrderDetails() {
                           )}
                           <div className="od-review-item-info">
                             <div className="od-review-item-name">{name}</div>
-                            {/* Star row — always visible */}
+                            {/* Star row */}
                             <div className="od-review-stars">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <button
                                   key={star}
                                   type="button"
-                                  className={`od-star-btn ${displayRating >= star ? "od-star-btn--filled" : ""} ${existing?.submitted ? "od-star-btn--locked" : ""}`}
+                                  className={`od-star-btn ${displayRating >= star ? "od-star-btn--filled" : ""} ${existing?.submitted && !isEditing ? "od-star-btn--locked" : ""}`}
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    if (existing?.submitted) return;
+                                    if (existing?.submitted && !isEditing) return;
                                     updateDraft(item.productId, "rating", star);
-                                    setExpandedReview(item.productId);
+                                    if (!isEditing) setExpandedReview(item.productId);
                                   }}
-                                  disabled={existing?.submitted}
+                                  disabled={existing?.submitted && !isEditing}
                                   aria-label={`${star} star${star > 1 ? "s" : ""}`}
                                 >
                                   ★
                                 </button>
                               ))}
-                              {existing?.submitted && (
+                              {existing?.submitted && !isEditing && (
                                 <span className="od-review-submitted-badge">✓ Reviewed</span>
                               )}
                             </div>
                           </div>
-                          {!existing?.submitted && (
+                          {/* Action button — Write / Edit */}
+                          {!existing?.submitted && !isOpen && (
                             <button
                               type="button"
                               className="od-review-expand-btn"
-                              onClick={() => setExpandedReview(isOpen ? null : item.productId)}
+                              onClick={() => setExpandedReview(item.productId)}
                             >
-                              {isOpen ? "▾" : "Write a review ›"}
+                              Write a review ›
+                            </button>
+                          )}
+                          {!existing?.submitted && isOpen && (
+                            <button
+                              type="button"
+                              className="od-review-expand-btn"
+                              onClick={() => setExpandedReview(null)}
+                            >
+                              ▾
+                            </button>
+                          )}
+                          {existing?.submitted && !isEditing && (
+                            <button
+                              type="button"
+                              className="od-review-edit-btn"
+                              onClick={() => handleEditReview(item.productId)}
+                            >
+                              ✎ Edit
+                            </button>
+                          )}
+                          {isEditing && (
+                            <button
+                              type="button"
+                              className="od-review-expand-btn"
+                              onClick={() => handleCancelEdit(item.productId)}
+                            >
+                              ▾
                             </button>
                           )}
                         </div>
 
-                        {/* Submitted review display */}
-                        {existing?.submitted && existing?.comment && (
+                        {/* Submitted review display (not in edit mode) */}
+                        {existing?.submitted && !isEditing && existing?.comment && (
                           <div className="od-review-display">
                             <div className="od-review-display-text">"{existing.comment}"</div>
                           </div>
                         )}
 
-                        {/* Expandable review form */}
-                        {isOpen && !existing?.submitted && (
+                        {/* Expandable review form (new review or edit mode) */}
+                        {isOpen && (!existing?.submitted || isEditing) && (
                           <div className="od-review-form">
                             <textarea
                               className="od-review-textarea"
@@ -737,7 +931,7 @@ export default function OrderDetails() {
                                 <button
                                   type="button"
                                   className="od-review-cancel-btn"
-                                  onClick={() => setExpandedReview(null)}
+                                  onClick={() => isEditing ? handleCancelEdit(item.productId) : setExpandedReview(null)}
                                 >
                                   Cancel
                                 </button>
@@ -747,7 +941,7 @@ export default function OrderDetails() {
                                   disabled={!draft.rating || submitting}
                                   onClick={() => handleSubmitReview(item.productId)}
                                 >
-                                  {submitting ? "Submitting…" : "Submit Review"}
+                                  {submitting ? "Submitting…" : isEditing ? "Update Review" : "Submit Review"}
                                 </button>
                               </div>
                             </div>
@@ -762,10 +956,10 @@ export default function OrderDetails() {
               {/* Rate page experience */}
               <div className="od-card od-rate">
                 <div className="od-rate-title">Rate your experience</div>
-                {isCancelled && (
+                {isCancelledOrRejected && (
                   <div className="od-rate-row">
                     <span className="od-rate-icon">🔄</span>
-                    <span>How was your cancellation experience?</span>
+                    <span>How was your {isRejected ? "rejection" : "cancellation"} experience?</span>
                     <span className="od-rate-arrow">&gt;</span>
                   </div>
                 )}
@@ -891,11 +1085,20 @@ export default function OrderDetails() {
                 <div className="od-price-row od-payment-method">
                   <span>Payment method</span>
                   <span className="od-payment-badge">
-                    💳 {paymentMethod === "COD" ? "Cash On Delivery" : paymentMethod}
+                    {isCodOrder ? "💵" : "💳"} {isCodOrder ? "Cash on Delivery" : paymentMethod}
                   </span>
                 </div>
 
-                {paymentId && (
+                {isCodOrder && (
+                  <div className="od-price-row">
+                    <span>Payment Status</span>
+                    <span className={`od-cod-status ${paymentStatus === "COLLECTED" ? "od-cod-status--collected" : "od-cod-status--pending"}`}>
+                      {paymentStatus === "COLLECTED" ? "🟢 Collected" : "🟡 Pending Collection"}
+                    </span>
+                  </div>
+                )}
+
+                {!isCodOrder && !isCodOrder && paymentId && (
                   <div className="od-price-row">
                     <span>Payment ID</span>
                     <span className="od-payment-id">{paymentId}</span>
@@ -921,33 +1124,63 @@ export default function OrderDetails() {
             </button>
             <div className="od-updates-title">Order Updates</div>
             <div className="od-updates-list">
-              {/* Order Confirmed */}
+              {/* Order Placed */}
               <div className="od-update-item">
                 <div className="od-update-dot-col">
                   <span className="od-update-dot od-update-dot--green" />
-                  {(isCancelled || activeStep > 0) && (
-                    <span className={`od-update-line ${isCancelled ? 'od-update-line--red' : 'od-update-line--green'}`} />
-                  )}
-                  {!isCancelled && activeStep === 0 && (
-                    <span className="od-update-line" />
-                  )}
+                  <span className={`od-update-line ${isCancelledOrRejected ? 'od-update-line--red' : activeStep >= 1 ? 'od-update-line--green' : ''}`} />
                 </div>
                 <div className="od-update-content">
                   <div className="od-update-heading">
-                    <strong>Order Confirmed</strong>
+                    <strong>Order Placed</strong>
                     <span className="od-update-date">{formatDateShort(orderDate)}</span>
                   </div>
-                  <div className="od-update-desc">Your Order has been placed.</div>
+                  <div className="od-update-desc">Your order has been placed.</div>
                   <div className="od-update-time">{formatDateTime(orderDate)}</div>
                 </div>
               </div>
 
-              {/* Shipped */}
-              {!isCancelled && (
+              {/* Payment Confirmed */}
+              {!isCancelledOrRejected && (
                 <div className="od-update-item">
                   <div className="od-update-dot-col">
                     <span className={`od-update-dot ${activeStep >= 1 ? 'od-update-dot--green' : ''}`} />
                     <span className={`od-update-line ${activeStep >= 2 ? 'od-update-line--green' : ''}`} />
+                  </div>
+                  <div className="od-update-content">
+                    <div className="od-update-heading">
+                      <strong>Payment Confirmed</strong>
+                      {order?.confirmedAt && <span className="od-update-date">{formatDateShort(order.confirmedAt)}</span>}
+                    </div>
+                    {order?.confirmedAt && <div className="od-update-time">{formatDateTime(order.confirmedAt)}</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Accepted by Seller */}
+              {!isCancelledOrRejected && (
+                <div className="od-update-item">
+                  <div className="od-update-dot-col">
+                    <span className={`od-update-dot ${activeStep >= 2 ? 'od-update-dot--green' : ''}`} />
+                    <span className={`od-update-line ${activeStep >= 3 ? 'od-update-line--green' : ''}`} />
+                  </div>
+                  <div className="od-update-content">
+                    <div className="od-update-heading">
+                      <strong>Accepted by Seller</strong>
+                      {order?.acceptedAt && <span className="od-update-date">{formatDateShort(order.acceptedAt)}</span>}
+                    </div>
+                    {order?.acceptedAt && <div className="od-update-desc">Seller is preparing your order.</div>}
+                    {order?.acceptedAt && <div className="od-update-time">{formatDateTime(order.acceptedAt)}</div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Shipped */}
+              {!isCancelledOrRejected && (
+                <div className="od-update-item">
+                  <div className="od-update-dot-col">
+                    <span className={`od-update-dot ${activeStep >= 3 ? 'od-update-dot--green' : ''}`} />
+                    <span className={`od-update-line ${activeStep >= 4 ? 'od-update-line--green' : ''}`} />
                   </div>
                   <div className="od-update-content">
                     <div className="od-update-heading">
@@ -960,50 +1193,42 @@ export default function OrderDetails() {
                 </div>
               )}
 
-              {/* Out for Delivery */}
-              {!isCancelled && (
-                <div className="od-update-item">
-                  <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 2 ? 'od-update-dot--green' : ''}`} />
-                    <span className={`od-update-line ${activeStep >= 3 ? 'od-update-line--green' : ''}`} />
-                  </div>
-                  <div className="od-update-content">
-                    <div className="od-update-heading">
-                      <strong>Out For Delivery</strong>
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Delivered */}
-              {!isCancelled && (
+              {!isCancelledOrRejected && (
                 <div className="od-update-item">
                   <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 3 ? 'od-update-dot--green' : ''}`} />
+                    <span className={`od-update-dot ${activeStep >= 4 ? 'od-update-dot--green' : ''}`} />
                   </div>
                   <div className="od-update-content">
                     <div className="od-update-heading">
                       <strong>Delivered</strong>
                       {deliveryDate && <span className="od-update-date">{formatDateShort(deliveryDate)}</span>}
                     </div>
+                    {order?.deliveredAt && <div className="od-update-desc">Order delivered successfully.</div>}
                     {order?.deliveredAt && <div className="od-update-time">{formatDateTime(order.deliveredAt)}</div>}
                   </div>
                 </div>
               )}
 
-              {/* Cancelled */}
-              {isCancelled && (
+              {/* Cancelled / Rejected */}
+              {isCancelledOrRejected && (
                 <div className="od-update-item">
                   <div className="od-update-dot-col">
                     <span className="od-update-dot od-update-dot--red" />
                   </div>
                   <div className="od-update-content">
                     <div className="od-update-heading">
-                      <strong>Cancelled</strong>
+                      <strong>{isRejected ? "Rejected by Seller" : "Cancelled"}</strong>
                       <span className="od-update-date">{formatDateShort(cancelledDate || orderDate)}</span>
                     </div>
                     <div className="od-update-desc">
-                      Your request is being processed. It may take up to 4 hours for your refund (if any) to be initiated.
+                      {isRejected
+                        ? (isCodOrder
+                          ? "Your order was rejected by the seller."
+                          : "Your order was rejected by the seller. A refund will be initiated shortly.")
+                        : (isCodOrder
+                          ? "Your order has been cancelled."
+                          : "Your request is being processed. It may take up to 4 hours for your refund (if any) to be initiated.")}
                     </div>
                     <div className="od-update-time">{formatDateTime(cancelledDate || orderDate)}</div>
                   </div>

@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
  *
  * Grouping:
  *   total     = all orders
- *   active    = CREATED + CONFIRMED + ACCEPTED + SHIPPED
+ *   active    = PAYMENT_PENDING + CONFIRMED + ACCEPTED + SHIPPED
  *   delivered = DELIVERED
  *   cancelled = CANCELLED + REJECTED
  */
@@ -24,4 +24,3 @@ public class OrderSummaryResponse {
     private long delivered;
     private long cancelled;
 }
-

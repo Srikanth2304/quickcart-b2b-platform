@@ -6,6 +6,7 @@ import {
   updateBagItemQuantity,
 } from "../utils/bagStorage";
 import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import api from "../api/axios";
 import "./RetailerBag.css";
 
@@ -45,6 +46,8 @@ export default function RetailerBag() {
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState("");
   const [editingAddressId, setEditingAddressId] = useState(null);
+  const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("ONLINE");
   const [addressForm, setAddressForm] = useState({
     name: "",
     phone: "",
@@ -142,7 +145,6 @@ export default function RetailerBag() {
           state: pick(addressForm.state, original.state),
           pincode: pick(addressForm.pincode, original.pincode),
         };
-        console.log("Address PATCH payload:", payload);
         await api.patch(`/addresses/${editingAddressId}`, payload);
         showToast("Address updated", "success");
       } else {
@@ -294,18 +296,8 @@ export default function RetailerBag() {
 
   const isSummaryStep = checkoutStep === "summary";
 
-  const getAuthToken = () => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token") || "";
-    return token;
-  };
-
-  const fetchRazorpayKey = async (token) => {
-    const response = await api.get("/payments/razorpay/key", {
-      headers: {
-        Authorization: token ? `Bearer ${token}` : undefined,
-      },
-    });
-    console.log("Razorpay key response:", response?.data ?? response);
+  const fetchRazorpayKey = async () => {
+    const response = await api.get("/payments/razorpay/key");
     return response?.data?.keyId || "";
   };
 
@@ -318,45 +310,51 @@ export default function RetailerBag() {
       showToast("Select an item first", "info");
       return;
     }
+
     const payload = {
       deliveryAddressId: selectedAddressId,
       items: selectedItems.map((item) => ({
         productId: item.id,
         quantity: Number(item.quantity || 1),
       })),
+      paymentMethod,
     };
+
+    setPlacingOrder(true);
+    let orderId = null;
     try {
-      const token = getAuthToken();
-      const orderResponse = await api.post("/orders", payload, {
-        headers: {
-          Authorization: token ? `Bearer ${token}` : undefined,
-        },
-      });
-      console.log("Order response:", orderResponse?.data ?? orderResponse);
-      const orderId = orderResponse?.data?.orderId;
+      const orderResponse = await api.post("/orders", payload);
+      orderId = orderResponse?.data?.orderId;
       if (!orderId) {
         showToast("Failed to create order", "error");
+        setPlacingOrder(false);
         return;
       }
 
-      const razorpayResponse = await api.post(
-        "/payments/razorpay/order",
-        { orderId },
-        {
-          headers: {
-            Authorization: token ? `Bearer ${token}` : undefined,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      console.log("Razorpay order response:", razorpayResponse?.data ?? razorpayResponse);
+      // ── COD: skip Razorpay entirely ──
+      if (paymentMethod === "CASH_ON_DELIVERY") {
+        try {
+          const purchasedIds = selectedItems.map((item) => item.id);
+          purchasedIds.forEach((id) => removeFromBag(id));
+          setItems(getBagItems());
+          setSelectedIds(new Set());
+        } catch { /* ignore cleanup errors */ }
+        showToast("Order placed with Cash on Delivery!", "success");
+        setPlacingOrder(false);
+        navigate(`/orders/success?orderId=${orderId}`);
+        return;
+      }
 
+      // ── ONLINE: proceed with Razorpay ──
+      const razorpayResponse = await api.post("/payments/razorpay/order", { orderId });
       const razorpayOrderId = razorpayResponse?.data?.razorpayOrderId;
       const amount = razorpayResponse?.data?.amount;
       const currency = razorpayResponse?.data?.currency || "INR";
 
       if (!razorpayOrderId || !amount) {
         showToast("Failed to initiate payment", "error");
+        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        setPlacingOrder(false);
         return;
       }
 
@@ -382,14 +380,25 @@ export default function RetailerBag() {
       const sdkLoaded = await loadRazorpaySdk();
       if (!sdkLoaded || !window?.Razorpay) {
         showToast("Razorpay SDK not loaded", "error");
+        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        setPlacingOrder(false);
         return;
       }
 
-      const keyId = await fetchRazorpayKey(token);
+      const keyId = await fetchRazorpayKey();
       if (!keyId) {
         showToast("Razorpay key is missing", "error");
+        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        setPlacingOrder(false);
         return;
       }
+
+      // Persist order context for recovery if verify call fails
+      try {
+        sessionStorage.setItem(`pending-order`, JSON.stringify({ orderId, razorpayOrderId }));
+      } catch { /* ignore */ }
+
+      const purchasedIds = selectedItems.map((item) => item.id);
 
       const options = {
         key: keyId,
@@ -398,40 +407,48 @@ export default function RetailerBag() {
         order_id: razorpayOrderId,
         handler: async (response) => {
           try {
-            const verifyResponse = await api.post(
-              "/payments/razorpay/verify",
-              {
-                orderId,
-                razorpayPaymentId: response?.razorpay_payment_id,
-                razorpayOrderId: response?.razorpay_order_id,
-                razorpaySignature: response?.razorpay_signature,
-              },
-              {
-                headers: {
-                  Authorization: token ? `Bearer ${token}` : undefined,
-                  "Content-Type": "application/json",
-                },
-              }
-            );
-            console.log("Razorpay verify response:", verifyResponse?.data ?? verifyResponse);
+            await api.post("/payments/razorpay/verify", {
+              orderId,
+              razorpayPaymentId: response?.razorpay_payment_id,
+              razorpayOrderId: response?.razorpay_order_id,
+              razorpaySignature: response?.razorpay_signature,
+            });
             showToast("Payment successful", "success");
+            // Clear purchased items from bag
+            purchasedIds.forEach((id) => removeFromBag(id));
+            setItems(getBagItems());
+            setSelectedIds(new Set());
             try {
               sessionStorage.setItem(
                 `order-payment-${orderId}`,
                 response?.razorpay_payment_id || ""
               );
-            } catch (storageError) {
-              // ignore
-            }
+              sessionStorage.removeItem(`pending-order`);
+            } catch { /* ignore */ }
             navigate(`/orders/success?orderId=${orderId}`);
           } catch (verifyError) {
-            console.log("Razorpay verify error:", verifyError);
-            showToast("Payment verification failed", "error");
+            if (!navigator.onLine || verifyError?.code === "ERR_NETWORK") {
+              showToast("Network error during payment verification. Please contact support.", "error");
+            } else {
+              showToast("Payment verification failed. Please contact support if amount was deducted.", "error");
+            }
+          } finally {
+            setPlacingOrder(false);
           }
         },
         modal: {
-          ondismiss: () => {
-            showToast("Payment cancelled", "info");
+          ondismiss: async () => {
+            // User closed Razorpay without paying → cancel the unpaid order
+            try {
+              await api.post(`/orders/${orderId}/cancel`);
+            } catch {
+              // If cancel fails, backend should auto-expire unpaid orders anyway
+            }
+            try {
+              sessionStorage.removeItem(`pending-order`);
+            } catch { /* ignore */ }
+            showToast("Payment was not completed. Order has been cancelled.", "info");
+            setPlacingOrder(false);
           },
         },
         theme: {
@@ -441,9 +458,26 @@ export default function RetailerBag() {
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
+      // NOTE: placingOrder will be reset inside handler/ondismiss, NOT in finally
     } catch (error) {
-      console.log("Order flow error:", error);
-      showToast("Failed to place order", "error");
+      // If order was created but something else failed, cancel it
+      if (orderId) {
+        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+      }
+      if (!navigator.onLine || error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
+        showToast("No internet connection. Please check your network and try again.", "error");
+      } else if (error?.response?.status === 401 || error?.response?.status === 403) {
+        showToast("Session expired. Please log in again.", "error");
+      } else if (error?.response?.status === 409) {
+        showToast("Some items are out of stock. Please update your cart.", "error");
+      } else if (error?.response?.status >= 500) {
+        showToast("Server error. Please try again in a moment.", "error");
+      } else if (error?.response?.data?.message) {
+        showToast(error.response.data.message, "error");
+      } else {
+        showToast("Failed to place order. Please try again.", "error");
+      }
+      setPlacingOrder(false);
     }
   };
 
@@ -688,6 +722,46 @@ export default function RetailerBag() {
             </>
           )}
 
+          {isSummaryStep && (
+            <div className="bag-panel bag-payment-panel">
+              <div className="bag-panel-title">Payment Method</div>
+              <div className="bag-payment-options">
+                <label className={`bag-payment-option ${paymentMethod === "ONLINE" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="ONLINE"
+                    checked={paymentMethod === "ONLINE"}
+                    onChange={() => setPaymentMethod("ONLINE")}
+                  />
+                  <div className="bag-payment-option-content">
+                    <span className="bag-payment-option-icon">💳</span>
+                    <div className="bag-payment-option-text">
+                      <span className="bag-payment-option-title">Online Payment</span>
+                      <span className="bag-payment-option-desc">Pay securely via UPI, Cards, Net Banking</span>
+                    </div>
+                  </div>
+                </label>
+                <label className={`bag-payment-option ${paymentMethod === "CASH_ON_DELIVERY" ? "active" : ""}`}>
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    value="CASH_ON_DELIVERY"
+                    checked={paymentMethod === "CASH_ON_DELIVERY"}
+                    onChange={() => setPaymentMethod("CASH_ON_DELIVERY")}
+                  />
+                  <div className="bag-payment-option-content">
+                    <span className="bag-payment-option-icon">💵</span>
+                    <div className="bag-payment-option-text">
+                      <span className="bag-payment-option-title">Cash on Delivery</span>
+                      <span className="bag-payment-option-desc">Pay when your order is delivered</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="bag-panel">
             <div className="bag-panel-title">Price Details ({summary.totalItems} items)</div>
             <div className="bag-price-row">
@@ -709,6 +783,7 @@ export default function RetailerBag() {
             <button
               type="button"
               className="bag-primary"
+              disabled={placingOrder}
               onClick={() => {
                 if (!isSummaryStep) {
                   if (selectedIds.size === 0) {
@@ -722,7 +797,9 @@ export default function RetailerBag() {
                 handlePlaceOrder();
               }}
             >
-              {isSummaryStep ? "CONTINUE" : "PLACE ORDER"}
+              {placingOrder ? (
+                <span className="qc-btn-spinner"><span className="qc-spinner" /> Placing Order…</span>
+              ) : isSummaryStep ? (paymentMethod === "CASH_ON_DELIVERY" ? "PLACE COD ORDER" : "CONTINUE") : "PLACE ORDER"}
             </button>
           </div>
         </aside>
@@ -738,7 +815,7 @@ export default function RetailerBag() {
             {!addressFormOpen ? (
               <>
                 <div className="address-panel-list">
-                  {addressLoading && <div className="address-empty">Loading addresses...</div>}
+                  {addressLoading && <div className="address-empty"><Loader size="sm" text="Loading addresses…" /></div>}
                   {!addressLoading && addressError && (
                     <div className="address-empty">{addressError}</div>
                   )}

@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import "./OrderCancel.css";
 
 function formatCurrency(value) {
@@ -56,6 +58,16 @@ export default function OrderCancel() {
         const data = res?.data || null;
         setOrder(data);
 
+        // Status guard — only allow cancel for PAYMENT_PENDING, CONFIRMED, ACCEPTED
+        const orderStatus = (data?.status || "").toUpperCase().replace(/[\s-]/g, "_");
+        const CANCELLABLE = ["PAYMENT_PENDING", "CREATED", "CONFIRMED", "ACCEPTED"];
+        const canCancel = CANCELLABLE.includes(orderStatus);
+        if (!canCancel) {
+          // Redirect back to order details — cancel is not allowed for this status
+          navigate(`/orders/${orderId}`, { replace: true });
+          return;
+        }
+
         // Fetch product images
         const items = data?.items || [];
         const infoMap = {};
@@ -98,9 +110,18 @@ export default function OrderCancel() {
     setSubmitting(true);
     try {
       await api.post(`/orders/${orderId}/cancel`);
+      showToast("Order cancelled successfully", "success");
       navigate(`/orders/${orderId}`, { replace: true });
-    } catch {
-      alert("Failed to cancel order. Please try again.");
+    } catch (error) {
+      if (!navigator.onLine || error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
+        showToast("No internet connection. Please check your network and try again.", "error");
+      } else if (error?.response?.status >= 500) {
+        showToast("Server error. Please try again in a moment.", "error");
+      } else if (error?.response?.data?.message) {
+        showToast(error.response.data.message, "error");
+      } else {
+        showToast("Failed to cancel order. Please try again.", "error");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -112,7 +133,7 @@ export default function OrderCancel() {
   if (loading) {
     return (
       <div className="oc-page">
-        <div className="oc-loading">Loading order details…</div>
+        <Loader fullPage text="Loading order details…" />
       </div>
     );
   }

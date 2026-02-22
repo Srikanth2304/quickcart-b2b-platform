@@ -66,6 +66,18 @@ public class RefundProcessorService {
                 return;
             }
 
+            // COD / NONE gateway payments have no gateway refund to process.
+            // Skip gateway interaction entirely.
+            if (payment.getGateway() == PaymentGateway.NONE) {
+                // Nothing to refund via gateway — just mark as processed.
+                refund.setStatus(RefundStatus.PROCESSED);
+                refund.setProcessedAt(LocalDateTime.now());
+                if (refund.getRefundReference() == null) {
+                    refund.setRefundReference("RF-COD-" + UUID.randomUUID());
+                }
+                return;
+            }
+
             // Try initiating refund at gateway if we have a verified gateway payment id.
             // This keeps refund flow "gateway-aware" without changing business ownership.
             if (payment.getGateway() == PaymentGateway.RAZORPAY

@@ -1,6 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import Loader from "../components/Loader";
 import "./RetailerOrders.css";
 
 /* ── Helpers ── */
@@ -41,6 +42,7 @@ function timeAgo(d) {
 
 /* Status config */
 const STATUS_MAP = {
+  PAYMENT_PENDING:  { label: "Payment Pending",  color: "#f59e0b", bg: "#fffbeb", icon: "⏳" },
   CREATED:          { label: "Created",          color: "#6b7280", bg: "#f3f4f6", icon: "📝" },
   CONFIRMED:        { label: "Confirmed",        color: "#6c5ce7", bg: "#f0edff", icon: "✓" },
   ACCEPTED:         { label: "Accepted",         color: "#6c5ce7", bg: "#f0edff", icon: "✓" },
@@ -59,17 +61,20 @@ function getStatusConfig(status) {
   if (s.includes("CANCEL")) return STATUS_MAP.CANCELLED;
   if (s.includes("REJECT")) return STATUS_MAP.REJECTED;
   if (s.includes("ACCEPT")) return STATUS_MAP.ACCEPTED;
+  if (s === "PAYMENT_PENDING") return STATUS_MAP.PAYMENT_PENDING;
   return STATUS_MAP[s] || STATUS_MAP.CONFIRMED;
 }
 
 /* Mini tracking steps */
 function getStepProgress(status) {
-  const s = (status || "").toUpperCase();
-  if (s.includes("DELIVER") && !s.includes("OUT")) return 4;
-  if (s.includes("OUT")) return 3;
-  if (s.includes("SHIP")) return 2;
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s.includes("DELIVER") && !s.includes("OUT")) return 5;
+  if (s.includes("OUT")) return 4;
+  if (s.includes("SHIP")) return 3;
+  if (s.includes("ACCEPT")) return 2;
+  if (s.includes("CONFIRM")) return 1;
   if (s.includes("CANCEL") || s.includes("REJECT")) return -1;
-  return 1;
+  return 0; // PAYMENT_PENDING or CREATED
 }
 
 /* Refund helpers */
@@ -100,7 +105,15 @@ const FILTER_TABS = [
   { key: "cancelled", label: "Cancelled",  status: "CANCELLED" },
 ];
 
+const SORT_OPTIONS = [
+  { key: "createdAt,desc", label: "Newest First" },
+  { key: "createdAt,asc",  label: "Oldest First" },
+  { key: "totalAmount,desc", label: "Amount: High → Low" },
+  { key: "totalAmount,asc",  label: "Amount: Low → High" },
+];
+
 const PAGE_SIZE = 10;
+const SEARCH_DEBOUNCE_MS = 400;
 
 export default function RetailerOrders() {
   const navigate = useNavigate();
@@ -119,6 +132,9 @@ export default function RetailerOrders() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sort, setSort] = useState("createdAt,desc");
+  const searchTimerRef = useRef(null);
 
   /* ── Fetch summary counts (once on mount) ── */
   useEffect(() => {
@@ -142,14 +158,26 @@ export default function RetailerOrders() {
     return () => { isMounted = false; };
   }, []);
 
-  /* ── Fetch paginated orders ── */
-  const fetchOrders = useCallback(async (tab, pageNum) => {
+  /* ── Debounced search: update debouncedSearch after delay ── */
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(0);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [searchTerm]);
+
+  /* ── Fetch paginated orders (all filtering/searching/sorting is server-side) ── */
+  const fetchOrders = useCallback(async (tab, pageNum, searchQuery, sortParam) => {
     setLoading(true);
     setError("");
     try {
       const params = { page: pageNum, size: PAGE_SIZE };
       const statusParam = FILTER_TABS.find((t) => t.key === tab)?.status;
       if (statusParam) params.status = statusParam;
+      if (searchQuery) params.search = searchQuery;
+      if (sortParam) params.sort = sortParam;
 
       const res = await api.get("/orders", { params });
       const resData = res?.data || {};
@@ -189,16 +217,21 @@ export default function RetailerOrders() {
         setProductImages(imgMap);
       }
 
-      /* Fetch refund info for cancelled orders */
+      /* Fetch refund info for cancelled/rejected paid orders */
       const cancelledOrders = data.filter((o) => {
         const s = (o.status || "").toUpperCase();
-        return s.includes("CANCEL") || s.includes("REJECT");
+        const isCancelledOrRejected = s.includes("CANCEL") || s.includes("REJECT");
+        if (!isCancelledOrRejected) return false;
+        // No refund for COD orders
+        if ((o.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY") return false;
+        const hasPaid = o.paymentId || o.paymentStatus || o.payment?.paymentId;
+        return !!hasPaid;
       });
       if (cancelledOrders.length > 0) {
         const rMap = { ...refundMap };
         await Promise.allSettled(
           cancelledOrders.map(async (o) => {
-            if (rMap[o.id]) return; // already cached
+            if (rMap[o.id]) return;
             try {
               const rRes = await api.get(`/orders/${o.id}/refund`);
               if (rRes?.data) rMap[o.id] = rRes.data;
@@ -214,32 +247,27 @@ export default function RetailerOrders() {
     }
   }, [productImages]);
 
-  /* Trigger fetch when tab or page changes */
+  /* Trigger fetch when tab, page, search, or sort changes */
   useEffect(() => {
-    fetchOrders(selectedTab, page);
+    fetchOrders(selectedTab, page, debouncedSearch, sort);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedTab, page]);
+  }, [selectedTab, page, debouncedSearch, sort]);
 
   /* ── Tab switch handler ── */
   const handleTabChange = (tabKey) => {
     if (tabKey === selectedTab) return;
     setSelectedTab(tabKey);
-    setPage(0); // reset to first page
-    setSearchTerm(""); // clear search on tab switch
+    setPage(0);
   };
 
-  /* ── Client-side search (within current page) ── */
-  const displayOrders = searchTerm.trim()
-    ? orders.filter((o) => {
-        const term = searchTerm.toLowerCase();
-        const matchId = String(o.id || "").includes(term);
-        const matchSeller = (o.manufacturerName || "").toLowerCase().includes(term);
-        const matchItems = (o.items || o.orderItems || []).some((i) =>
-          (i.productName || "").toLowerCase().includes(term)
-        );
-        return matchId || matchSeller || matchItems;
-      })
-    : orders;
+  /* ── Sort change handler ── */
+  const handleSortChange = (value) => {
+    setSort(value);
+    setPage(0);
+  };
+
+  /* All results come directly from the server — no client-side filtering */
+  const displayOrders = orders;
 
   /* ── Refresh summary after navigating back ── */
   const refreshSummary = async () => {
@@ -315,15 +343,22 @@ export default function RetailerOrders() {
                 <button type="button" className="ro-search-clear" onClick={() => setSearchTerm("")}>✕</button>
               )}
             </div>
+            <select
+              className="ro-sort-select"
+              value={sort}
+              onChange={(e) => handleSortChange(e.target.value)}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.key} value={o.key}>{o.label}</option>
+              ))}
+            </select>
           </div>
         </div>
 
         {/* ══════ Content ══════ */}
         {loading && (
           <div className="ro-loading">
-            <div className="ro-skeleton-card" />
-            <div className="ro-skeleton-card" />
-            <div className="ro-skeleton-card" />
+            <Loader size="lg" text="Loading orders…" />
           </div>
         )}
 
@@ -331,7 +366,7 @@ export default function RetailerOrders() {
           <div className="ro-error">
             <span className="ro-error-icon">⚠️</span>
             <span>{error}</span>
-            <button type="button" className="ro-error-retry" onClick={() => fetchOrders(selectedTab, page)}>Retry</button>
+            <button type="button" className="ro-error-retry" onClick={() => fetchOrders(selectedTab, page, debouncedSearch, sort)}>Retry</button>
           </div>
         )}
 
@@ -438,13 +473,13 @@ export default function RetailerOrders() {
                   {/* Mini progress tracker (non-cancelled only) */}
                   {!isCancelled && (
                     <div className="ro-mini-tracker">
-                      {["Confirmed", "Shipped", "Out for delivery", "Delivered"].map((step, i) => {
+                      {["Placed", "Confirmed", "Accepted", "Shipped", "Delivered"].map((step, i) => {
                         const filled = stepProgress > i;
-                        const current = stepProgress === i + 1;
+                        const current = stepProgress === i;
                         return (
                           <div className="ro-mini-step" key={step}>
                             <div className={`ro-mini-dot ${filled ? "ro-mini-dot--filled" : ""} ${current ? "ro-mini-dot--current" : ""}`} />
-                            {i < 3 && <div className={`ro-mini-line ${filled && stepProgress > i + 1 ? "ro-mini-line--filled" : ""}`} />}
+                            {i < 4 && <div className={`ro-mini-line ${filled && stepProgress > i + 1 ? "ro-mini-line--filled" : ""}`} />}
                             <span className={`ro-mini-label ${current ? "ro-mini-label--current" : ""} ${filled ? "ro-mini-label--filled" : ""}`}>{step}</span>
                           </div>
                         );
@@ -460,8 +495,8 @@ export default function RetailerOrders() {
                     </div>
                   )}
 
-                  {/* Refund status badge (cancelled orders) */}
-                  {isCancelled && refundMap[order.id] && (() => {
+                  {/* Refund status badge (cancelled orders — online payments only) */}
+                  {isCancelled && !((order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY") && refundMap[order.id] && (() => {
                     const refund = refundMap[order.id];
                     const rc = getRefundConfig(refund.status);
                     if (!rc) return null;
@@ -478,6 +513,19 @@ export default function RetailerOrders() {
                       </div>
                     );
                   })()}
+
+                  {/* COD payment badge */}
+                  {(order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY" && (
+                    <div className="ro-cod-strip">
+                      <span className="ro-cod-icon">💵</span>
+                      <span className="ro-cod-label">Cash on Delivery</span>
+                      {(order?.paymentStatus || order?.payment?.status || "").toUpperCase() === "COLLECTED" ? (
+                        <span className="ro-cod-status ro-cod-status--collected">🟢 Collected</span>
+                      ) : (
+                        <span className="ro-cod-status ro-cod-status--pending">🟡 Pending Collection</span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Rate prompt for delivered orders */}
                   {isDelivered && (

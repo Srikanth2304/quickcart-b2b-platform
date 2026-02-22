@@ -113,10 +113,9 @@ public class ProductReviewService {
             throw new ResourceNotFoundException("Product", "id", productId);
         }
 
-        ProductReview review = productReviewRepository.findByUserIdAndProductId(currentUser.getId(), productId)
-                .orElseThrow(() -> new ResourceNotFoundException("ProductReview", "productId", productId));
-
-        return mapToResponse(review);
+        return productReviewRepository.findByUserIdAndProductId(currentUser.getId(), productId)
+                .map(this::mapToResponse)
+                .orElse(null);
     }
 
     @Transactional

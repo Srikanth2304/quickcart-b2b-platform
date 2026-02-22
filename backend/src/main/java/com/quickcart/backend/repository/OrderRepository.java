@@ -6,13 +6,14 @@ import com.quickcart.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface OrderRepository extends JpaRepository<Order, Long> {
+public interface OrderRepository extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
     /**
      * Find paginated orders for a retailer with eager loading.
@@ -116,7 +117,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Uses conditional SUM to compute all buckets in one DB round trip.
      */
     @Query("SELECT COUNT(o), " +
-           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CREATED, " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.PAYMENT_PENDING, " +
            "    com.quickcart.backend.entity.OrderStatus.CONFIRMED, " +
            "    com.quickcart.backend.entity.OrderStatus.ACCEPTED, " +
            "    com.quickcart.backend.entity.OrderStatus.SHIPPED) THEN 1 ELSE 0 END), " +
@@ -130,7 +131,7 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
      * Single-query aggregation: order summary counts for a manufacturer.
      */
     @Query("SELECT COUNT(o), " +
-           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.CREATED, " +
+           "SUM(CASE WHEN o.status IN (com.quickcart.backend.entity.OrderStatus.PAYMENT_PENDING, " +
            "    com.quickcart.backend.entity.OrderStatus.CONFIRMED, " +
            "    com.quickcart.backend.entity.OrderStatus.ACCEPTED, " +
            "    com.quickcart.backend.entity.OrderStatus.SHIPPED) THEN 1 ELSE 0 END), " +
@@ -139,4 +140,15 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
            "    com.quickcart.backend.entity.OrderStatus.REJECTED) THEN 1 ELSE 0 END) " +
            "FROM Order o WHERE o.manufacturer = :user")
     Object[] getOrderSummaryForManufacturer(@Param("user") User user);
+
+    /**
+     * Find orders in PAYMENT_PENDING status that are older than the given cutoff time.
+     * Used by the auto-expiry scheduler.
+     */
+    @Query("SELECT o FROM Order o " +
+           "LEFT JOIN FETCH o.items i " +
+           "LEFT JOIN FETCH i.product " +
+           "WHERE o.status = com.quickcart.backend.entity.OrderStatus.PAYMENT_PENDING " +
+           "AND o.createdAt < :cutoff")
+    List<Order> findExpiredPaymentPendingOrders(@Param("cutoff") java.time.LocalDateTime cutoff);
 }

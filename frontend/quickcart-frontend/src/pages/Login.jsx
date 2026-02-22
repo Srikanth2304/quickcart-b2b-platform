@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { useNavigate } from "react-router-dom";
+import "../components/Loader.css";
 import "./Login.css";
 
 
@@ -208,7 +209,9 @@ export default function Login() {
               className="btn-login"
               disabled={loading}
             >
-              {loading ? "Logging in..." : "Log In"}
+              {loading ? (
+                <span className="qc-btn-spinner"><span className="qc-spinner" /> Logging in…</span>
+              ) : "Log In"}
             </button>
           </form>
 

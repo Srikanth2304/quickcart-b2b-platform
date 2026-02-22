@@ -13,16 +13,23 @@ import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
 import com.quickcart.backend.repository.OrderRepository;
 import com.quickcart.backend.repository.PaymentRepository;
+import com.quickcart.backend.repository.spec.OrderSpecifications;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.TypedQuery;
+import jakarta.persistence.criteria.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -32,12 +39,20 @@ public class OrderQueryService {
 
     private final OrderRepository orderRepository;
     private final PaymentRepository paymentRepository;
+    private final EntityManager entityManager;
+
+    /**
+     * Allowed sort fields — prevents arbitrary column access.
+     */
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "createdAt", "totalAmount", "status"
+    );
 
     /**
      * Status group name → constituent OrderStatus values.
      */
     private static final Map<String, List<OrderStatus>> STATUS_GROUPS = Map.of(
-            "ACTIVE", List.of(OrderStatus.CREATED, OrderStatus.CONFIRMED, OrderStatus.ACCEPTED, OrderStatus.SHIPPED),
+            "ACTIVE", List.of(OrderStatus.PAYMENT_PENDING, OrderStatus.CONFIRMED, OrderStatus.ACCEPTED, OrderStatus.SHIPPED),
             "DELIVERED", List.of(OrderStatus.DELIVERED),
             "CANCELLED", List.of(OrderStatus.CANCELLED, OrderStatus.REJECTED)
     );
@@ -70,37 +85,48 @@ public class OrderQueryService {
     }
 
     /**
-     * Get paginated orders for authenticated user, optionally filtered by status group.
-     * Manufacturer → orders received
-     * Retailer → orders placed
+     * Validate that every sort property is in the allowed set.
      */
-    public Page<OrderResponse> getOrders(User user, String status, Pageable pageable) {
+    private void validateSort(Pageable pageable) {
+        for (Sort.Order order : pageable.getSort()) {
+            if (!ALLOWED_SORT_FIELDS.contains(order.getProperty())) {
+                throw new IllegalArgumentException(
+                        "Invalid sort field: " + order.getProperty() +
+                        ". Allowed: " + ALLOWED_SORT_FIELDS);
+            }
+        }
+    }
+
+    /**
+     * Get paginated orders for authenticated user with optional:
+     *   - status filter (group name or individual enum)
+     *   - search keyword (case-insensitive, partial match across order id, product name, retailer/manufacturer name)
+     *   - sorting (createdAt, totalAmount, status)
+     *
+     * Uses a two-phase approach:
+     *   Phase 1 — ID projection with Specification (pagination-safe, no fetch joins)
+     *   Phase 2 — Fetch full entities + relations for the page of IDs
+     */
+    public Page<OrderResponse> getOrders(User user, String status, String search, Pageable pageable) {
+
+        validateSort(pageable);
 
         List<OrderStatus> statuses = resolveStatusFilter(status);
+        Specification<Order> spec = OrderSpecifications.buildSpec(user, statuses, search);
 
-        // Production-safe pagination:
-        // 1) paginate over IDs (no fetch joins)
-        // 2) fetch relations for those IDs with fetch joins
-        Page<Long> idsPage;
-
-        if (user.hasRole("MANUFACTURER")) {
-            idsPage = statuses != null
-                    ? orderRepository.findIdsByManufacturerAndStatusIn(user, statuses, pageable)
-                    : orderRepository.findIdsByManufacturer(user, pageable);
-        } else {
-            idsPage = statuses != null
-                    ? orderRepository.findIdsByRetailerAndStatusIn(user, statuses, pageable)
-                    : orderRepository.findIdsByRetailer(user, pageable);
-        }
+        // Phase 1: paginated ID projection using Criteria API
+        // This avoids fetch joins in the count query and keeps pagination accurate.
+        Page<Long> idsPage = findIdsBySpec(spec, pageable);
 
         List<Long> ids = idsPage.getContent();
         if (ids.isEmpty()) {
             return new PageImpl<>(List.<OrderResponse>of(), pageable, idsPage.getTotalElements());
         }
 
+        // Phase 2: fetch full entities with relations for the page of IDs
         List<Order> orders = orderRepository.findAllByIdWithRelations(ids);
 
-        // Preserve the order of the paged IDs
+        // Preserve the sort order from the paged IDs
         Map<Long, Order> byId = orders.stream()
                 .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Order::getId, Function.identity()));
@@ -108,7 +134,6 @@ public class OrderQueryService {
         List<OrderResponse> content = ids.stream()
                 .map(byId::get)
                 .filter(Objects::nonNull)
-                // Keep list endpoint unchanged: do not fetch payment per order here.
                 .map(this::mapToResponse)
                 .collect(Collectors.toList());
 
@@ -116,10 +141,75 @@ public class OrderQueryService {
     }
 
     /**
-     * Backward-compatible overload: no status filter.
+     * Phase 1 helper: run the Specification as an ID-only projection with pagination.
+     *
+     * We build the CriteriaQuery manually so that:
+     *   - The SELECT clause projects only `order.id`
+     *   - The WHERE clause comes from the Specification
+     *   - Sorting and pagination are applied correctly
+     *   - A separate COUNT query is issued for the total (no fetch joins)
+     */
+    private Page<Long> findIdsBySpec(Specification<Order> spec, Pageable pageable) {
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+
+        // ── Count query ─────────────────────────────────────────────────
+        CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        Root<Order> countRoot = countQuery.from(Order.class);
+        countQuery.select(cb.count(countRoot));
+
+        Predicate countPredicate = spec.toPredicate(countRoot, countQuery, cb);
+        if (countPredicate != null) {
+            countQuery.where(countPredicate);
+        }
+
+        long total = entityManager.createQuery(countQuery).getSingleResult();
+
+        if (total == 0 || pageable.getOffset() >= total) {
+            return new PageImpl<>(List.of(), pageable, total);
+        }
+
+        // ── ID projection query ─────────────────────────────────────────
+        CriteriaQuery<Long> idQuery = cb.createQuery(Long.class);
+        Root<Order> idRoot = idQuery.from(Order.class);
+        idQuery.select(idRoot.get("id"));
+
+        Predicate idPredicate = spec.toPredicate(idRoot, idQuery, cb);
+        if (idPredicate != null) {
+            idQuery.where(idPredicate);
+        }
+
+        // Apply sorting
+        if (pageable.getSort().isSorted()) {
+            List<jakarta.persistence.criteria.Order> jpaOrders = pageable.getSort().stream()
+                    .map(sortOrder -> sortOrder.isAscending()
+                            ? cb.asc(idRoot.get(sortOrder.getProperty()))
+                            : cb.desc(idRoot.get(sortOrder.getProperty())))
+                    .collect(Collectors.toList());
+            idQuery.orderBy(jpaOrders);
+        }
+
+        TypedQuery<Long> typedQuery = entityManager.createQuery(idQuery);
+        typedQuery.setFirstResult((int) pageable.getOffset());
+        typedQuery.setMaxResults(pageable.getPageSize());
+
+        List<Long> ids = typedQuery.getResultList();
+
+        return new PageImpl<>(ids, pageable, total);
+    }
+
+    /**
+     * Backward-compatible overload: status filter only, no search.
+     */
+    public Page<OrderResponse> getOrders(User user, String status, Pageable pageable) {
+        return getOrders(user, status, null, pageable);
+    }
+
+    /**
+     * Backward-compatible overload: no status filter, no search.
      */
     public Page<OrderResponse> getOrders(User user, Pageable pageable) {
-        return getOrders(user, null, pageable);
+        return getOrders(user, null, null, pageable);
     }
 
     /**
@@ -210,6 +300,7 @@ public class OrderQueryService {
         return OrderResponse.builder()
                 .id(order.getId())
                 .status(order.getStatus().name())
+                .paymentMethod(order.getPaymentMethod() != null ? order.getPaymentMethod().name() : null)
                 .totalAmount(order.getTotalAmount())
                 .createdAt(order.getCreatedAt())
                 .retailerName(order.getRetailer().getName())
@@ -229,6 +320,7 @@ public class OrderQueryService {
                 .shipmentTrackingUrl(order.getShipmentTrackingUrl())
                 .shippedAt(order.getShippedAt())
                 .deliveredAt(order.getDeliveredAt())
+                .acceptedAt(order.getAcceptedAt())
                 .items(order.getItems().stream()
                         .map(this::mapItemToResponse)
                         .toList())

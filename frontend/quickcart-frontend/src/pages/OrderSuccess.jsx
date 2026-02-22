@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import Loader from "../components/Loader";
 import "./OrderSuccess.css";
 
 function useQuery() {
@@ -22,6 +23,7 @@ export default function OrderSuccess() {
   const [order, setOrder] = useState(null);
   const [paymentId, setPaymentId] = useState("");
   const resolvedPaymentId = paymentId || order?.payment?.paymentId || order?.paymentId || order?.razorpayPaymentId || "";
+  const isCodOrder = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
 
   const deliveryDate =
     order?.deliveryDate ||
@@ -76,15 +78,19 @@ export default function OrderSuccess() {
       <div className="order-success-layout">
         <section className="order-success-main">
           <div className="order-success-card">
-            {loading && <div className="order-success-state">Loading order details...</div>}
+            {loading && <div className="order-success-state"><Loader text="Loading order details…" /></div>}
             {!loading && error && <div className="order-success-error">{error}</div>}
             {!loading && !error && order && (
               <>
                 <div className="order-success-hero">
                   <div>
-                    <div className="order-success-title">Thanks for shopping with us!</div>
+                    <div className="order-success-title">
+                      {isCodOrder ? "Order placed — Cash on Delivery!" : "Thanks for shopping with us!"}
+                    </div>
                     <div className="order-success-sub">
-                      {deliveryDate ? `Delivery by ${deliveryDate}` : "Delivery scheduled"}
+                      {isCodOrder
+                        ? "Pay when your order is delivered"
+                        : deliveryDate ? `Delivery by ${deliveryDate}` : "Delivery scheduled"}
                     </div>
                     <button
                       type="button"
@@ -115,23 +121,30 @@ export default function OrderSuccess() {
                     <span>Order ID</span>
                     <strong>{order.id || order.orderId}</strong>
                   </div>
-                  <div className="order-success-row">
-                    <span>Payment ID</span>
-                    <div className="order-success-copy">
-                      <button
-                        type="button"
-                        className="order-success-copy-btn"
-                        onClick={() => {
-                          if (!resolvedPaymentId) return;
-                          navigator.clipboard.writeText(resolvedPaymentId);
-                        }}
-                        aria-label="Copy payment id"
-                      >
-                        ⧉
-                      </button>
-                      <strong>{resolvedPaymentId || "-"}</strong>
+                  {isCodOrder ? (
+                    <div className="order-success-row">
+                      <span>Payment Method</span>
+                      <strong>💵 Cash on Delivery</strong>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="order-success-row">
+                      <span>Payment ID</span>
+                      <div className="order-success-copy">
+                        <button
+                          type="button"
+                          className="order-success-copy-btn"
+                          onClick={() => {
+                            if (!resolvedPaymentId) return;
+                            navigator.clipboard.writeText(resolvedPaymentId);
+                          }}
+                          aria-label="Copy payment id"
+                        >
+                          ⧉
+                        </button>
+                        <strong>{resolvedPaymentId || "-"}</strong>
+                      </div>
+                    </div>
+                  )}
                   <div className="order-success-row">
                     <span>Total Amount</span>
                     <strong>₹{formatCurrency(order.totalAmount || order.amount)}</strong>

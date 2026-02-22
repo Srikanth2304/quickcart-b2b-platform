@@ -298,6 +298,72 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles OrderAlreadyCancelledException.
+     * Returns 409 CONFLICT when the order has already been cancelled.
+     */
+    @ExceptionHandler(OrderAlreadyCancelledException.class)
+    public ResponseEntity<ErrorResponse> handleOrderAlreadyCancelled(
+            OrderAlreadyCancelledException ex,
+            HttpServletRequest request) {
+
+        log.warn("Order already cancelled: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.ORDER_ALREADY_CANCELLED.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handles InvalidStateTransitionException.
+     * Returns 409 CONFLICT when an invalid order state transition is attempted.
+     */
+    @ExceptionHandler(InvalidStateTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidStateTransition(
+            InvalidStateTransitionException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid state transition: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.INVALID_STATE_TRANSITION.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
+     * Handles PaymentAlreadyProcessedException.
+     * Returns 409 CONFLICT when payment has already been processed.
+     */
+    @ExceptionHandler(PaymentAlreadyProcessedException.class)
+    public ResponseEntity<ErrorResponse> handlePaymentAlreadyProcessed(
+            PaymentAlreadyProcessedException ex,
+            HttpServletRequest request) {
+
+        log.warn("Payment already processed: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.CONFLICT.value(),
+                "Conflict",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.PAYMENT_ALREADY_PROCESSED.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(error);
+    }
+
+    /**
      * Handles all other unexpected exceptions.
      * Returns 500 INTERNAL SERVER ERROR with a generic message.
      */
@@ -329,6 +395,72 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
 
         log.warn("Invalid payment signature for {}", request.getRequestURI());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad Request",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.INVALID_PAYMENT_SIGNATURE.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    /**
+     * Handles InvalidSelfRegistrationRoleException.
+     * Returns 403 FORBIDDEN when a user tries to self-register with a restricted role.
+     */
+    @ExceptionHandler(InvalidSelfRegistrationRoleException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidSelfRegistrationRole(
+            InvalidSelfRegistrationRoleException ex,
+            HttpServletRequest request) {
+
+        log.warn("Invalid self-registration role: {}", ex.getMessage());
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.FORBIDDEN.value(),
+                "Forbidden",
+                ex.getMessage(),
+                request.getRequestURI(),
+                ErrorCode.INVALID_ROLE.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    /**
+     * Handles WebhookInfrastructureException.
+     * Returns 503 SERVICE UNAVAILABLE so the payment gateway retries delivery.
+     */
+    @ExceptionHandler(WebhookInfrastructureException.class)
+    public ResponseEntity<ErrorResponse> handleWebhookInfrastructure(
+            WebhookInfrastructureException ex,
+            HttpServletRequest request) {
+
+        log.error("Webhook infrastructure failure: {}", ex.getMessage(), ex);
+
+        ErrorResponse error = new ErrorResponse(
+                HttpStatus.SERVICE_UNAVAILABLE.value(),
+                "Service Unavailable",
+                "Temporary processing failure, please retry",
+                request.getRequestURI(),
+                ErrorCode.WEBHOOK_ERROR.getCode()
+        );
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(error);
+    }
+
+    /**
+     * Handles IllegalArgumentException (e.g. invalid status filter values).
+     * Returns 400 BAD REQUEST.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalArgument(
+            IllegalArgumentException ex,
+            HttpServletRequest request) {
+
+        log.warn("Bad request: {}", ex.getMessage());
 
         ErrorResponse error = new ErrorResponse(
                 HttpStatus.BAD_REQUEST.value(),

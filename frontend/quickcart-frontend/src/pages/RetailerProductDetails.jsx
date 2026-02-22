@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import api from "../api/axios";
 import { addToBag } from "../utils/bagStorage";
 import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import "./RetailerProductDetails.css";
 
 function formatCurrency(value) {
@@ -36,6 +37,7 @@ function saveWishlist(items) {
 
 export default function RetailerProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -135,12 +137,18 @@ export default function RetailerProductDetails() {
     addToBag(product, 1);
     showToast("Added to cart", "success");
   };
+
+  const handleBuyNow = () => {
+    if (!product) return;
+    addToBag(product, 1);
+    navigate("/retailer/bag");
+  };
   const ratingValue = Number(product?.rating || 0).toFixed(1);
   const ratingCount = product?.reviewCount ?? 0;
 
   return (
     <div className="retailer-product-details-page">
-      {loading && <div className="retailer-product-details-state">Loading product...</div>}
+      {loading && <Loader fullPage text="Loading product…" />}
       {error && !product && <div className="retailer-product-details-error">{error}</div>}
 
       {!loading && !error && product && (
@@ -225,7 +233,13 @@ export default function RetailerProductDetails() {
                 >
                   Add to Cart
                 </button>
-                <button className="retailer-product-action buy">Buy Now</button>
+                <button
+                  className="retailer-product-action buy"
+                  type="button"
+                  onClick={handleBuyNow}
+                >
+                  Buy Now
+                </button>
               </div>
 
               <div className="retailer-product-section">

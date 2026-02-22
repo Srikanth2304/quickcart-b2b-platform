@@ -17,6 +17,7 @@ public class OrderResponse {
 
     private Long id;
     private String status;
+    private String paymentMethod;
     private BigDecimal totalAmount;
     private LocalDateTime createdAt;
 
@@ -48,6 +49,7 @@ public class OrderResponse {
     private String shipmentTrackingUrl;
     private LocalDateTime shippedAt;
     private LocalDateTime deliveredAt;
+    private LocalDateTime acceptedAt;
 
     // Order items
     private List<OrderItemResponse> items;

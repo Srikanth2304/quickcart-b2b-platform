@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
+import { showToast } from "../utils/notify";
+import Loader from "../components/Loader";
 import "./ManufacturerOrders.css";
 
 function formatCurrency(value) {
@@ -45,77 +48,174 @@ function formatDateTime(dateStr) {
 }
 
 const STATUS_COLORS = {
-  CONFIRMED: { bg: "#f0edff", color: "#6c5ce7", label: "Confirmed" },
-  SHIPPED: { bg: "#e8f4ff", color: "#2196f3", label: "Shipped" },
+  PAYMENT_PENDING:  { bg: "#fffbeb", color: "#f59e0b", label: "Payment Pending" },
+  CREATED:          { bg: "#f3f4f6", color: "#6b7280", label: "Created" },
+  CONFIRMED:        { bg: "#f0edff", color: "#6c5ce7", label: "Confirmed" },
+  ACCEPTED:         { bg: "#eff6ff", color: "#2563eb", label: "Accepted" },
+  SHIPPED:          { bg: "#e8f4ff", color: "#2196f3", label: "Shipped" },
   OUT_FOR_DELIVERY: { bg: "#fff8e1", color: "#f39c12", label: "Out for Delivery" },
-  DELIVERED: { bg: "#e8fdf0", color: "#27ae60", label: "Delivered" },
-  CANCELLED: { bg: "#fff0f0", color: "#e53935", label: "Cancelled" },
+  DELIVERED:        { bg: "#e8fdf0", color: "#27ae60", label: "Delivered" },
+  CANCELLED:        { bg: "#fff0f0", color: "#e53935", label: "Cancelled" },
+  REJECTED:         { bg: "#fff0f0", color: "#e53935", label: "Rejected" },
 };
 
-const FILTER_OPTIONS = ["All", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+const FILTER_OPTIONS = ["All", "Payment Pending", "Confirmed", "Accepted", "Shipped", "Delivered", "Cancelled", "Rejected"];
 
 function isRefundPending(status) {
   const s = (status || "").toUpperCase();
   return s === "PENDING" || s === "PENDING_APPROVAL";
 }
 
+/* Lifecycle actions a manufacturer can take per status */
+function getLifecycleActions(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "PAYMENT_PENDING") return ["cancel"];
+  if (s === "CONFIRMED") return ["accept", "reject", "cancel"];
+  if (s === "ACCEPTED") return ["ship", "cancel"];
+  if (s === "SHIPPED") return ["deliver"];
+  return [];
+}
+
+const ACTION_CONFIG = {
+  accept:  { label: "Accept Order",    icon: "✓",  className: "mo-lifecycle-btn--accept",  confirmTitle: "Accept this order?",  confirmDesc: "This will move the order to ACCEPTED. You'll need to prepare it for shipment.",  confirmIcon: "✅" },
+  reject:  { label: "Reject Order",    icon: "✕",  className: "mo-lifecycle-btn--reject",  confirmTitle: "Reject this order?",  confirmDesc: "This will reject the order. If paid online, a refund will be automatically initiated. This action cannot be undone.",  confirmIcon: "⚠️" },
+  ship:    { label: "Mark Shipped",    icon: "🚚", className: "mo-lifecycle-btn--ship",    confirmTitle: "Mark as shipped?",    confirmDesc: "Confirm that this order has been shipped. The retailer will be notified.",  confirmIcon: "🚚" },
+  deliver: { label: "Mark Delivered",  icon: "📦", className: "mo-lifecycle-btn--deliver", confirmTitle: "Mark as delivered?",  confirmDesc: "Confirm that this order has been delivered to the retailer.",  confirmIcon: "📦" },
+  cancel:  { label: "Cancel Order",    icon: "⊘",  className: "mo-lifecycle-btn--cancel",  confirmTitle: "Cancel this order?",  confirmDesc: "This will cancel the order and restore stock. If paid online, a refund will be processed. This cannot be undone.",  confirmIcon: "🚫" },
+};
+
+const LIFECYCLE_ENDPOINTS = {
+  accept:  (id) => `/orders/${id}/accept`,
+  reject:  (id) => `/orders/${id}/reject`,
+  ship:    (id) => `/orders/${id}/shipment`,
+  deliver: (id) => `/orders/${id}/deliver`,
+  cancel:  (id) => `/orders/${id}/cancel`,
+};
+
+const SORT_OPTIONS = [
+  { key: "createdAt,desc", label: "Newest First" },
+  { key: "createdAt,asc",  label: "Oldest First" },
+  { key: "totalAmount,desc", label: "Amount: High → Low" },
+  { key: "totalAmount,asc",  label: "Amount: Low → High" },
+];
+
+const SEARCH_DEBOUNCE_MS = 400;
+
 export default function ManufacturerOrders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("All");
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [sort, setSort] = useState("createdAt,desc");
+  const searchTimerRef = useRef(null);
+
+  // Server-driven pagination
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+  const PAGE_SIZE = 10;
+
+  // Server-driven summary counts
+  const [summary, setSummary] = useState({ total: 0, active: 0, delivered: 0, cancelled: 0 });
 
   // Refund data per order
   const [refunds, setRefunds] = useState({});
   const [refundActions, setRefundActions] = useState({});
 
-  // Confirmation modal
-  const [confirmModal, setConfirmModal] = useState(null); // { orderId, action: 'approve'|'reject' }
+  // Lifecycle action in-progress tracker { orderId: 'accept'|'ship'|... }
+  const [lifecycleActions, setLifecycleActions] = useState({});
 
-  useEffect(() => {
-    let isMounted = true;
+  // Confirmation modal — now supports lifecycle + refund actions
+  const [confirmModal, setConfirmModal] = useState(null); // { orderId, action, type: 'lifecycle'|'refund' }
 
-    const fetchOrders = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const res = await api.get("/orders", { params: { page: 0, size: 100 } });
-        if (!isMounted) return;
-        const resData = res?.data || {};
-        const data = Array.isArray(resData) ? resData : resData.content || resData.orders || [];
-        setOrders(data);
-
-        // Fetch refund data for cancelled orders
-        const cancelledOrders = data.filter((o) => {
-          const s = (o.status || "").toUpperCase();
-          return s.includes("CANCEL") || s.includes("REJECTED");
+  /* Fetch summary counts from backend (never compute on frontend) */
+  const fetchSummary = async () => {
+    try {
+      const res = await api.get("/orders/summary");
+      if (res?.data) {
+        setSummary({
+          total: res.data.total ?? 0,
+          active: res.data.active ?? 0,
+          delivered: res.data.delivered ?? 0,
+          cancelled: res.data.cancelled ?? 0,
         });
+      }
+    } catch { /* summary fetch failed — counts stay 0 */ }
+  };
 
-        const refundMap = {};
+  useEffect(() => { fetchSummary(); }, []);
+
+  /* Debounced search: update debouncedSearch after delay */
+  useEffect(() => {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(searchTerm.trim());
+      setPage(0);
+    }, SEARCH_DEBOUNCE_MS);
+    return () => clearTimeout(searchTimerRef.current);
+  }, [searchTerm]);
+
+  const fetchOrders = async (pageNum = 0) => {
+    setLoading(true);
+    setError("");
+    try {
+      const params = { page: pageNum, size: PAGE_SIZE };
+      // Map filter tab to backend status param
+      if (filter !== "All") {
+        const statusParam = filter.toUpperCase().replace(/\s+/g, "_");
+        params.status = statusParam;
+      }
+      if (debouncedSearch) params.search = debouncedSearch;
+      if (sort) params.sort = sort;
+
+      const res = await api.get("/orders", { params });
+      const resData = res?.data || {};
+      const data = Array.isArray(resData) ? resData : resData.content || resData.orders || [];
+      setOrders(data);
+      setTotalPages(resData.totalPages || 1);
+      setTotalElements(resData.totalElements || data.length);
+
+      // Fetch refund data for cancelled/rejected orders that had a payment
+      const refundEligible = data.filter((o) => {
+        const s = (o.status || "").toUpperCase();
+        const isCancelledOrRejected = s.includes("CANCEL") || s.includes("REJECT");
+        if (!isCancelledOrRejected) return false;
+        // No refund for COD orders
+        if ((o.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY") return false;
+        // Only fetch refund if order was paid (has payment info)
+        const hasPaid = o.paymentId || o.paymentStatus || o.payment?.paymentId;
+        return !!hasPaid;
+      });
+
+      if (refundEligible.length > 0) {
+        const refundMap = { ...refunds };
         await Promise.allSettled(
-          cancelledOrders.map(async (o) => {
+          refundEligible.map(async (o) => {
+            if (refundMap[o.id]) return; // already cached
             try {
               const rRes = await api.get(`/orders/${o.id}/refund`);
               refundMap[o.id] = rRes?.data || null;
             } catch {
-              // no refund
+              // no refund exists or fetch failed — ignore
             }
           })
         );
-        if (isMounted) setRefunds(refundMap);
-      } catch {
-        if (isMounted) setError("Failed to load orders.");
-      } finally {
-        if (isMounted) setLoading(false);
+        setRefunds(refundMap);
       }
-    };
+    } catch {
+      setError("Failed to load orders.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchOrders();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+  useEffect(() => {
+    fetchOrders(page);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, filter, debouncedSearch, sort]);
 
   const handleRefundAction = async (orderId, action) => {
     setConfirmModal(null);
@@ -126,50 +226,79 @@ export default function ManufacturerOrders() {
       try {
         const rRes = await api.get(`/orders/${orderId}/refund`);
         setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));
-      } catch {
-        // If refetch fails, update optimistically
-        setRefunds((prev) => ({
-          ...prev,
-          [orderId]: prev[orderId]
-            ? { ...prev[orderId], status: action === "approve" ? "APPROVED" : "REJECTED" }
-            : null,
-        }));
+      } catch (err) {
+        if (err?.response?.status === 404) {
+          // Refund record not found — clear it
+          setRefunds((prev) => ({ ...prev, [orderId]: null }));
+        } else {
+          // Non-404 error — update optimistically
+          setRefunds((prev) => ({
+            ...prev,
+            [orderId]: prev[orderId]
+              ? { ...prev[orderId], status: action === "approve" ? "APPROVED" : "REJECTED" }
+              : null,
+          }));
+        }
       }
-    } catch {
-      alert(`Failed to ${action} refund. Please try again.`);
+    } catch (err) {
+      showToast(err?.response?.data?.message || `Failed to ${action} refund. Please try again.`, "error");
     } finally {
       setRefundActions((prev) => ({ ...prev, [orderId]: null }));
     }
   };
 
-  // Filtering & search
-  const filteredOrders = orders.filter((o) => {
-    const s = (o.status || "").toUpperCase();
-    if (filter !== "All") {
-      const filterUpper = filter.toUpperCase();
-      if (filterUpper === "CANCELLED") {
-        if (!s.includes("CANCEL") && !s.includes("REJECTED")) return false;
-      } else if (!s.includes(filterUpper)) return false;
+  /* ── Lifecycle action handler ── */
+  const handleLifecycleAction = async (orderId, action) => {
+    setConfirmModal(null);
+    setLifecycleActions((prev) => ({ ...prev, [orderId]: action }));
+    try {
+      const endpoint = LIFECYCLE_ENDPOINTS[action];
+      if (!endpoint) return;
+      await api.post(endpoint(orderId));
+      // Re-fetch the single order to get updated status
+      try {
+        const res = await api.get(`/orders/${orderId}`);
+        if (res?.data) {
+          setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...res.data } : o)));
+        }
+      } catch {
+        // Fallback: refetch current page
+        fetchOrders(page);
+      }
+      // If the action was reject or cancel, fetch refund info (refund may be auto-created)
+      if (action === "reject" || action === "cancel") {
+        try {
+          const rRes = await api.get(`/orders/${orderId}/refund`);
+          setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));
+        } catch {
+          // no refund record created yet — ignore
+        }
+      }
+      // Refresh summary counts from backend
+      fetchSummary();
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.response?.data?.error || `Failed to ${action} order.`;
+      showToast(msg, "error");
+    } finally {
+      setLifecycleActions((prev) => ({ ...prev, [orderId]: null }));
     }
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      const matchId = String(o.id || "").includes(term);
-      const matchRetailer = (o.retailerName || "").toLowerCase().includes(term);
-      const matchItems = (o.items || []).some((i) =>
-        (i.productName || "").toLowerCase().includes(term)
-      );
-      if (!matchId && !matchRetailer && !matchItems) return false;
-    }
-    return true;
-  });
+  };
+
+  /* All results come directly from the server — no client-side filtering */
+  const filteredOrders = orders;
 
   const getStatusStyle = (status) => {
     const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
-    if (s.includes("CANCEL") || s.includes("REJECTED")) return STATUS_COLORS.CANCELLED;
+    if (s.includes("REJECT")) return STATUS_COLORS.REJECTED;
+    if (s.includes("CANCEL")) return STATUS_COLORS.CANCELLED;
     if (s.includes("DELIVER") && !s.includes("OUT")) return STATUS_COLORS.DELIVERED;
     if (s.includes("OUT")) return STATUS_COLORS.OUT_FOR_DELIVERY;
     if (s.includes("SHIP")) return STATUS_COLORS.SHIPPED;
-    return STATUS_COLORS.CONFIRMED;
+    if (s.includes("ACCEPT")) return STATUS_COLORS.ACCEPTED;
+    if (s.includes("CONFIRM")) return STATUS_COLORS.CONFIRMED;
+    if (s === "PAYMENT_PENDING") return STATUS_COLORS.PAYMENT_PENDING;
+    if (s === "CREATED") return STATUS_COLORS.CREATED;
+    return STATUS_COLORS.CREATED;
   };
 
   return (
@@ -180,27 +309,20 @@ export default function ManufacturerOrders() {
           <div>
             <h1 className="mo-title">Retailer Orders</h1>
             <p className="mo-subtitle">
-              Manage incoming orders and process refunds
+              Manage orders, lifecycle actions & refunds
             </p>
           </div>
           <div className="mo-stats">
             <div className="mo-stat">
-              <span className="mo-stat-num">{orders.length}</span>
+              <span className="mo-stat-num">{summary.total}</span>
               <span className="mo-stat-label">Total</span>
             </div>
             <div className="mo-stat">
-              <span className="mo-stat-num mo-stat-num--active">
-                {orders.filter((o) => {
-                  const s = (o.status || "").toUpperCase();
-                  return !s.includes("CANCEL") && !s.includes("DELIVER");
-                }).length}
-              </span>
+              <span className="mo-stat-num mo-stat-num--active">{summary.active}</span>
               <span className="mo-stat-label">Active</span>
             </div>
             <div className="mo-stat">
-              <span className="mo-stat-num mo-stat-num--cancelled">
-                {orders.filter((o) => (o.status || "").toUpperCase().includes("CANCEL")).length}
-              </span>
+              <span className="mo-stat-num mo-stat-num--cancelled">{summary.cancelled}</span>
               <span className="mo-stat-label">Cancelled</span>
             </div>
           </div>
@@ -214,7 +336,7 @@ export default function ManufacturerOrders() {
                 key={f}
                 type="button"
                 className={`mo-filter-btn ${filter === f ? "mo-filter-btn--active" : ""}`}
-                onClick={() => setFilter(f)}
+                onClick={() => { setFilter(f); setPage(0); }}
               >
                 {f}
               </button>
@@ -229,11 +351,23 @@ export default function ManufacturerOrders() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+            {searchTerm && (
+              <button type="button" className="mo-search-clear" onClick={() => setSearchTerm("")}>✕</button>
+            )}
           </div>
+          <select
+            className="mo-sort-select"
+            value={sort}
+            onChange={(e) => { setSort(e.target.value); setPage(0); }}
+          >
+            {SORT_OPTIONS.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
         </div>
 
         {/* Content */}
-        {loading && <div className="mo-state">Loading orders…</div>}
+        {loading && <div className="mo-state"><Loader text="Loading orders…" /></div>}
         {!loading && error && <div className="mo-error">{error}</div>}
 
         {!loading && !error && filteredOrders.length === 0 && (
@@ -249,18 +383,31 @@ export default function ManufacturerOrders() {
               const items = order.items || order.orderItems || [];
               const totalAmount = order.totalAmount || order.amount || 0;
               const statusStyle = getStatusStyle(order.status);
-              const isCancelled =
-                (order.status || "").toUpperCase().includes("CANCEL") ||
-                (order.status || "").toUpperCase().includes("REJECTED");
+              const orderStatusUpper = (order.status || "").toUpperCase().replace(/[\s-]/g, "_");
+              const isCancelled = orderStatusUpper.includes("CANCEL");
+              const isRejected = orderStatusUpper.includes("REJECT");
+              const isCancelledOrRejected = isCancelled || isRejected;
               const refund = refunds[order.id] || null;
               const refundPending = refund && isRefundPending(refund.status);
               const refundProcessing = refundActions[order.id];
-              const paymentStatus = (order?.payment?.status || "").toUpperCase();
-              const paymentGateway = (order?.payment?.gateway || order?.paymentMethod || "").toUpperCase();
-              const isPaid = paymentStatus === "SUCCESS" || paymentStatus === "COMPLETED" || paymentStatus === "REFUND_PENDING" || paymentStatus === "REFUNDED" || paymentGateway === "RAZORPAY" || paymentGateway === "ONLINE" || !!order?.payment?.paymentId || !!order?.paymentId;
+              // Trust backend: if order was ever CONFIRMED or beyond, payment happened
+              const isPaid = orderStatusUpper !== "PAYMENT_PENDING" && orderStatusUpper !== "CREATED";
+              const isCodOrder = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
+
+              // Lifecycle actions available for this order
+              const actions = getLifecycleActions(order.status);
+              const lifecycleInProgress = lifecycleActions[order.id];
 
               return (
-                <div className="mo-order-card" key={order.id}>
+                <div
+                  className="mo-order-card"
+                  key={order.id}
+                  onClick={() => navigate(`/manufacturer/orders/${order.id}`)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => e.key === "Enter" && navigate(`/manufacturer/orders/${order.id}`)}
+                  style={{ cursor: "pointer" }}
+                >
                   {/* Card header */}
                   <div className="mo-order-header">
                     <div className="mo-order-id-row">
@@ -327,17 +474,59 @@ export default function ManufacturerOrders() {
 
                     {/* Payment info */}
                     <div className="mo-payment-info">
-                      <span className="mo-payment-gateway">
-                        💳 {order?.payment?.gateway || "Online"}
-                      </span>
-                      {isPaid && (
-                        <span className="mo-payment-paid">Paid</span>
+                      {isCodOrder ? (
+                        <>
+                          <span className="mo-payment-gateway">💵 Cash on Delivery</span>
+                          {orderStatusUpper.includes("DELIVER") && !orderStatusUpper.includes("OUT") ? (
+                            <span className="mo-payment-paid">Collected</span>
+                          ) : (
+                            <span className="mo-payment-pending">Pending Collection</span>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <span className="mo-payment-gateway">💳 {order?.payment?.gateway || "Online"}</span>
+                          {isPaid ? (
+                            <span className="mo-payment-paid">Paid</span>
+                          ) : (
+                            <span className="mo-payment-pending">Awaiting Payment</span>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
 
-                  {/* Refund Section */}
-                  {isCancelled && refund && (
+                  {/* ── Lifecycle Action Buttons ── */}
+                  {actions.length > 0 && (
+                    <div className="mo-lifecycle-section" onClick={(e) => e.stopPropagation()}>
+                      <div className="mo-lifecycle-label">Actions</div>
+                      <div className="mo-lifecycle-actions">
+                        {actions.map((action) => {
+                          const cfg = ACTION_CONFIG[action];
+                          if (!cfg) return null;
+                          const isProcessing = lifecycleInProgress === action;
+                          return (
+                            <button
+                              key={action}
+                              type="button"
+                              className={`mo-lifecycle-btn ${cfg.className}`}
+                              disabled={!!lifecycleInProgress}
+                              onClick={() =>
+                                setConfirmModal({ orderId: order.id, action, type: "lifecycle" })
+                              }
+                            >
+                              {isProcessing
+                                ? `${cfg.label.replace(/^(\w+)/, "$1ing")}…`
+                                : `${cfg.icon} ${cfg.label}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Refund Section (online payments only) */}
+                  {isCancelledOrRejected && !isCodOrder && refund && (
                     <div className={`mo-refund-section mo-refund-section--${isRefundPending(refund.status) ? "pending" : (refund.status || "").toLowerCase()}`}>
                       <div className="mo-refund-top">
                         <span className="mo-refund-label">Refund Status</span>
@@ -369,13 +558,13 @@ export default function ManufacturerOrders() {
 
                       {/* Approve / Reject buttons when refund is PENDING */}
                       {refundPending && (
-                        <div className="mo-refund-actions">
+                        <div className="mo-refund-actions" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
                             className="mo-refund-btn mo-refund-btn--approve"
                             disabled={!!refundProcessing}
                             onClick={() =>
-                              setConfirmModal({ orderId: order.id, action: "approve" })
+                              setConfirmModal({ orderId: order.id, action: "approve", type: "refund" })
                             }
                           >
                             {refundProcessing === "approve" ? "Approving…" : "✓ Approve Refund"}
@@ -385,7 +574,7 @@ export default function ManufacturerOrders() {
                             className="mo-refund-btn mo-refund-btn--reject"
                             disabled={!!refundProcessing}
                             onClick={() =>
-                              setConfirmModal({ orderId: order.id, action: "reject" })
+                              setConfirmModal({ orderId: order.id, action: "reject", type: "refund" })
                             }
                           >
                             {refundProcessing === "reject" ? "Rejecting…" : "✕ Reject Refund"}
@@ -425,11 +614,27 @@ export default function ManufacturerOrders() {
                     </div>
                   )}
 
-                  {/* Show message for cancelled orders without a refund record */}
-                  {isCancelled && !refund && (
+                  {/* Paid order cancelled/rejected but no refund record yet — backend auto-creates refunds */}
+                  {isCancelledOrRejected && !refund && isPaid && !isCodOrder && (
                     <div className="mo-refund-section mo-refund-section--none">
                       <span className="mo-refund-note">
-                        No refund request found for this cancelled order.
+                        Refund is being processed by the system. It may take a few moments to appear.
+                      </span>
+                    </div>
+                  )}
+
+                  {isCancelledOrRejected && !refund && !isPaid && !isCodOrder && (
+                    <div className="mo-refund-section mo-refund-section--none">
+                      <span className="mo-refund-note">
+                        No payment was made for this order. Refund not applicable.
+                      </span>
+                    </div>
+                  )}
+
+                  {isCancelledOrRejected && isCodOrder && (
+                    <div className="mo-refund-section mo-refund-section--none">
+                      <span className="mo-refund-note">
+                        💵 Cash on Delivery — no refund applicable.
                       </span>
                     </div>
                   )}
@@ -438,56 +643,100 @@ export default function ManufacturerOrders() {
             })}
           </div>
         )}
+
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <div className="mo-pagination">
+            <button type="button" className="mo-page-btn" disabled={page === 0} onClick={() => setPage(0)}>«</button>
+            <button type="button" className="mo-page-btn" disabled={page === 0} onClick={() => setPage((p) => Math.max(0, p - 1))}>‹</button>
+            {Array.from({ length: totalPages }, (_, i) => i)
+              .filter((i) => i === 0 || i === totalPages - 1 || Math.abs(i - page) <= 1)
+              .reduce((acc, i, idx, arr) => {
+                if (idx > 0 && i - arr[idx - 1] > 1) acc.push(-1);
+                acc.push(i);
+                return acc;
+              }, [])
+              .map((i, idx) =>
+                i === -1 ? (
+                  <span key={`e-${idx}`} className="mo-page-ellipsis">…</span>
+                ) : (
+                  <button key={i} type="button" className={`mo-page-btn mo-page-num ${page === i ? "mo-page-num--active" : ""}`} onClick={() => setPage(i)}>{i + 1}</button>
+                )
+              )}
+            <button type="button" className="mo-page-btn" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}>›</button>
+            <button type="button" className="mo-page-btn" disabled={page >= totalPages - 1} onClick={() => setPage(totalPages - 1)}>»</button>
+            <span className="mo-page-info">Page {page + 1} of {totalPages} · {totalElements} order{totalElements !== 1 ? "s" : ""}</span>
+          </div>
+        )}
       </div>
 
-      {/* Confirmation Modal */}
-      {confirmModal && (
-        <div className="mo-modal-overlay" onClick={() => setConfirmModal(null)}>
-          <div className="mo-modal" onClick={(e) => e.stopPropagation()}>
-            <button
-              type="button"
-              className="mo-modal-close"
-              onClick={() => setConfirmModal(null)}
-              aria-label="Close"
-            >
-              ✕
-            </button>
-            <div className="mo-modal-icon">
-              {confirmModal.action === "approve" ? "✅" : "⚠️"}
-            </div>
-            <div className="mo-modal-title">
-              {confirmModal.action === "approve"
-                ? "Approve Refund?"
-                : "Reject Refund?"}
-            </div>
-            <div className="mo-modal-desc">
-              {confirmModal.action === "approve"
-                ? "This will initiate the refund to the retailer's original payment method via the payment gateway. This action cannot be undone."
-                : "This will reject the refund request. The retailer will be notified. Are you sure you want to proceed?"}
-            </div>
-            <div className="mo-modal-actions">
+      {/* Confirmation Modal — supports lifecycle + refund actions */}
+      {confirmModal && (() => {
+        const isLifecycle = confirmModal.type === "lifecycle";
+        const cfg = isLifecycle ? ACTION_CONFIG[confirmModal.action] : null;
+
+        const icon = isLifecycle
+          ? cfg?.confirmIcon || "❓"
+          : confirmModal.action === "approve" ? "✅" : "⚠️";
+
+        const title = isLifecycle
+          ? cfg?.confirmTitle || "Confirm action?"
+          : confirmModal.action === "approve" ? "Approve Refund?" : "Reject Refund?";
+
+        const desc = isLifecycle
+          ? cfg?.confirmDesc || "Are you sure?"
+          : confirmModal.action === "approve"
+            ? "This will initiate the refund to the retailer's original payment method via the payment gateway. This action cannot be undone."
+            : "This will reject the refund request. The retailer will be notified. Are you sure you want to proceed?";
+
+        const confirmBtnClass = isLifecycle
+          ? (confirmModal.action === "reject" || confirmModal.action === "cancel")
+            ? "mo-modal-btn--reject"
+            : "mo-modal-btn--approve"
+          : confirmModal.action === "approve" ? "mo-modal-btn--approve" : "mo-modal-btn--reject";
+
+        const confirmLabel = isLifecycle
+          ? `Yes, ${cfg?.label || confirmModal.action}`
+          : confirmModal.action === "approve" ? "Yes, Approve" : "Yes, Reject";
+
+        return (
+          <div className="mo-modal-overlay" onClick={() => setConfirmModal(null)}>
+            <div className="mo-modal" onClick={(e) => e.stopPropagation()}>
               <button
                 type="button"
-                className="mo-modal-btn mo-modal-btn--secondary"
+                className="mo-modal-close"
                 onClick={() => setConfirmModal(null)}
+                aria-label="Close"
               >
-                Cancel
+                ✕
               </button>
-              <button
-                type="button"
-                className={`mo-modal-btn ${confirmModal.action === "approve" ? "mo-modal-btn--approve" : "mo-modal-btn--reject"}`}
-                onClick={() =>
-                  handleRefundAction(confirmModal.orderId, confirmModal.action)
-                }
-              >
-                {confirmModal.action === "approve"
-                  ? "Yes, Approve"
-                  : "Yes, Reject"}
-              </button>
+              <div className="mo-modal-icon">{icon}</div>
+              <div className="mo-modal-title">{title}</div>
+              <div className="mo-modal-desc">{desc}</div>
+              <div className="mo-modal-actions">
+                <button
+                  type="button"
+                  className="mo-modal-btn mo-modal-btn--secondary"
+                  onClick={() => setConfirmModal(null)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={`mo-modal-btn ${confirmBtnClass}`}
+                  onClick={() =>
+                    isLifecycle
+                      ? handleLifecycleAction(confirmModal.orderId, confirmModal.action)
+                      : handleRefundAction(confirmModal.orderId, confirmModal.action)
+                  }
+                >
+                  {confirmLabel}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

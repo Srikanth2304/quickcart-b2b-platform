@@ -73,6 +73,7 @@ public class SecurityConfig {
         );
 
         config.setAllowedHeaders(List.of("*"));
+        config.setExposedHeaders(List.of("Idempotency-Key"));
         config.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source =

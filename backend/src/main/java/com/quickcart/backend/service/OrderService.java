@@ -5,8 +5,12 @@ import com.quickcart.backend.dto.PlaceOrderRequest;
 import com.quickcart.backend.entity.*;
 import com.quickcart.backend.exception.AccessDeniedException;
 import com.quickcart.backend.exception.InsufficientStockException;
+import com.quickcart.backend.exception.InvalidStateTransitionException;
+import com.quickcart.backend.exception.OrderAlreadyCancelledException;
 import com.quickcart.backend.exception.ResourceNotFoundException;
+import com.quickcart.backend.repository.InvoiceRepository;
 import com.quickcart.backend.repository.OrderRepository;
+import com.quickcart.backend.repository.PaymentRepository;
 import com.quickcart.backend.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +26,8 @@ public class OrderService {
 
     private final ProductRepository productRepository;
     private final OrderRepository orderRepository;
+    private final PaymentRepository paymentRepository;
+    private final InvoiceRepository invoiceRepository;
     private final OrderAuditService orderAuditService;
     private final RefundService refundService;
     private final AddressService addressService;
@@ -35,6 +41,11 @@ public class OrderService {
         if (!retailer.hasRole("RETAILER")) {
             throw new AccessDeniedException("Only retailers can place orders");
         }
+
+        // Resolve payment method — default to ONLINE for backward compatibility
+        PaymentMethod paymentMethod = request.getPaymentMethod() != null
+                ? request.getPaymentMethod()
+                : PaymentMethod.ONLINE;
 
         // Resolve address owned by retailer and take a snapshot into the order
         Address address = addressService.getAddressOwnedByUserOrThrow(request.getDeliveryAddressId(), retailer);
@@ -87,11 +98,17 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
+        // Determine initial status based on payment method
+        OrderStatus initialStatus = (paymentMethod == PaymentMethod.CASH_ON_DELIVERY)
+                ? OrderStatus.CONFIRMED
+                : OrderStatus.PAYMENT_PENDING;
+
         // Create order
         Order order = Order.builder()
                 .retailer(retailer)
                 .manufacturer(manufacturer)
-                .status(OrderStatus.CREATED)
+                .status(initialStatus)
+                .paymentMethod(paymentMethod)
                 .totalAmount(totalAmount)
                 // snapshot fields
                 .deliveryName(address.getName())
@@ -112,9 +129,55 @@ public class OrderService {
 
         Order saved = orderRepository.save(order);
 
-        orderAuditService.recordEvent(saved, OrderEventType.ORDER_PLACED, null, OrderStatus.CREATED, retailer, "Order placed");
+        orderAuditService.recordEvent(saved, OrderEventType.ORDER_PLACED, null, initialStatus, retailer,
+                "Order placed (" + paymentMethod.name() + ")");
+
+        // ── COD-specific post-creation logic ────────────────────────────
+        if (paymentMethod == PaymentMethod.CASH_ON_DELIVERY) {
+            createCodPaymentRecord(saved, retailer);
+            createCodInvoice(saved, retailer);
+        }
 
         return saved;
+    }
+
+    /**
+     * Create a Payment row for COD orders with status PENDING_COLLECTION.
+     * No gateway interaction — purely a bookkeeping record.
+     */
+    private void createCodPaymentRecord(Order order, User retailer) {
+        Payment payment = Payment.builder()
+                .order(order)
+                .retailer(retailer)
+                .amount(order.getTotalAmount())
+                .status(PaymentStatus.PENDING_COLLECTION)
+                .gateway(PaymentGateway.NONE)
+                .build();
+        payment.setCreatedBy(retailer);
+        payment.setUpdatedBy(retailer);
+
+        paymentRepository.save(payment);
+
+        orderAuditService.recordEvent(order, OrderEventType.PAYMENT_CREATED, order.getStatus(), order.getStatus(), retailer,
+                "COD payment record created (pending collection at delivery)");
+    }
+
+    /**
+     * Create an invoice immediately for COD orders.
+     */
+    private void createCodInvoice(Order order, User retailer) {
+        Invoice invoice = Invoice.builder()
+                .order(order)
+                .retailer(retailer)
+                .amount(order.getTotalAmount())
+                .build();
+        invoice.setCreatedBy(retailer);
+        invoice.setUpdatedBy(retailer);
+
+        invoiceRepository.save(invoice);
+
+        orderAuditService.recordEvent(order, OrderEventType.INVOICE_GENERATED, order.getStatus(), order.getStatus(), retailer,
+                "Invoice generated for COD order");
     }
 
     /**
@@ -131,11 +194,13 @@ public class OrderService {
                 .orElseThrow(() -> new AccessDeniedException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new AccessDeniedException("Only CONFIRMED orders can be accepted");
+            throw new InvalidStateTransitionException(
+                    order.getStatus().name(), OrderStatus.ACCEPTED.name());
         }
 
         OrderStatus from = order.getStatus();
         order.setStatus(OrderStatus.ACCEPTED);
+        order.setAcceptedAt(java.time.LocalDateTime.now());
         order.setUpdatedBy(manufacturer);
 
         orderAuditService.recordEvent(order, OrderEventType.STATUS_CHANGED, from, OrderStatus.ACCEPTED, manufacturer, "Order accepted by manufacturer");
@@ -155,7 +220,8 @@ public class OrderService {
                 .orElseThrow(() -> new AccessDeniedException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.CONFIRMED) {
-            throw new AccessDeniedException("Only CONFIRMED orders can be rejected");
+            throw new InvalidStateTransitionException(
+                    order.getStatus().name(), OrderStatus.REJECTED.name());
         }
 
         OrderStatus from = order.getStatus();
@@ -170,7 +236,10 @@ public class OrderService {
         orderAuditService.recordEvent(order, OrderEventType.STATUS_CHANGED, from, OrderStatus.REJECTED, manufacturer, note);
 
         // Refund workflow: manufacturer reject after payment should auto-refund.
-        refundService.ensureAutoRefundProcessedForManufacturerReject(order, manufacturer, reason);
+        // For COD orders, no gateway refund is needed — skip refund processing.
+        if (order.getPaymentMethod() != PaymentMethod.CASH_ON_DELIVERY) {
+            refundService.ensureAutoRefundProcessedForManufacturerReject(order, manufacturer, reason);
+        }
     }
 
     @Transactional
@@ -183,28 +252,36 @@ public class OrderService {
         Order order = orderRepository.findByIdAndManufacturer(orderId, manufacturer)
                 .orElseThrow(() -> new AccessDeniedException("Order", orderId));
 
-        // Basic validation (can be expanded later)
-        if (order.getStatus() == OrderStatus.CANCELLED ||
-                order.getStatus() == OrderStatus.DELIVERED ||
-                order.getStatus() == OrderStatus.REJECTED) {
-            throw new AccessDeniedException("Order status cannot be updated");
+        OrderStatus current = order.getStatus();
+
+        // Terminal states: cannot update further
+        if (current == OrderStatus.CANCELLED) {
+            throw new OrderAlreadyCancelledException(orderId);
+        }
+        if (current == OrderStatus.DELIVERED || current == OrderStatus.REJECTED) {
+            throw new InvalidStateTransitionException(
+                    current.name(), newStatus.name());
         }
 
         // Enforce a simple manufacturer workflow:
         // - After payment: CONFIRMED must go to ACCEPTED/REJECTED first
         // - Shipping only after ACCEPTED
-        if (order.getStatus() == OrderStatus.CONFIRMED &&
+        if (current == OrderStatus.CONFIRMED &&
                 newStatus != OrderStatus.ACCEPTED &&
                 newStatus != OrderStatus.REJECTED) {
-            throw new AccessDeniedException("Order must be accepted or rejected before further status updates");
+            throw new InvalidStateTransitionException(
+                    "Order must be accepted or rejected before further status updates. Current: "
+                    + current.name() + ", requested: " + newStatus.name());
         }
 
-        if (newStatus == OrderStatus.SHIPPED && order.getStatus() != OrderStatus.ACCEPTED) {
-            throw new AccessDeniedException("Only ACCEPTED orders can be marked as SHIPPED");
+        if (newStatus == OrderStatus.SHIPPED && current != OrderStatus.ACCEPTED) {
+            throw new InvalidStateTransitionException(
+                    current.name(), OrderStatus.SHIPPED.name());
         }
 
-        if (newStatus == OrderStatus.DELIVERED && order.getStatus() != OrderStatus.SHIPPED) {
-            throw new AccessDeniedException("Only SHIPPED orders can be marked as DELIVERED");
+        if (newStatus == OrderStatus.DELIVERED && current != OrderStatus.SHIPPED) {
+            throw new InvalidStateTransitionException(
+                    current.name(), OrderStatus.DELIVERED.name());
         }
 
         OrderStatus from = order.getStatus();
@@ -228,7 +305,8 @@ public class OrderService {
                 .orElseThrow(() -> new AccessDeniedException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.ACCEPTED) {
-            throw new AccessDeniedException("Only ACCEPTED orders can be shipped");
+            throw new InvalidStateTransitionException(
+                    order.getStatus().name(), OrderStatus.SHIPPED.name());
         }
 
         OrderStatus from = order.getStatus();
@@ -241,15 +319,15 @@ public class OrderService {
         order.setStatus(OrderStatus.SHIPPED);
         order.setUpdatedBy(manufacturer);
 
-        String note = "Shipment created";
+        String shipNote = "Shipment created";
         if (order.getShipmentCarrier() != null && !order.getShipmentCarrier().isBlank()) {
-            note += " (" + order.getShipmentCarrier() + ")";
+            shipNote += " (" + order.getShipmentCarrier() + ")";
         }
         if (order.getShipmentTrackingNumber() != null && !order.getShipmentTrackingNumber().isBlank()) {
-            note += " tracking=" + order.getShipmentTrackingNumber();
+            shipNote += " tracking=" + order.getShipmentTrackingNumber();
         }
 
-        orderAuditService.recordEvent(order, OrderEventType.STATUS_CHANGED, from, OrderStatus.SHIPPED, manufacturer, note);
+        orderAuditService.recordEvent(order, OrderEventType.STATUS_CHANGED, from, OrderStatus.SHIPPED, manufacturer, shipNote);
     }
 
     @Transactional
@@ -262,7 +340,8 @@ public class OrderService {
                 .orElseThrow(() -> new AccessDeniedException("Order", orderId));
 
         if (order.getStatus() != OrderStatus.SHIPPED) {
-            throw new AccessDeniedException("Only SHIPPED orders can be marked as DELIVERED");
+            throw new InvalidStateTransitionException(
+                    order.getStatus().name(), OrderStatus.DELIVERED.name());
         }
 
         OrderStatus from = order.getStatus();
@@ -271,13 +350,30 @@ public class OrderService {
         order.setUpdatedBy(manufacturer);
 
         orderAuditService.recordEvent(order, OrderEventType.STATUS_CHANGED, from, OrderStatus.DELIVERED, manufacturer, "Order marked as delivered");
+
+        // COD: mark payment as COLLECTED upon delivery
+        if (order.getPaymentMethod() == PaymentMethod.CASH_ON_DELIVERY) {
+            markCodPaymentCollected(order, manufacturer);
+        }
+    }
+
+    /**
+     * Mark COD payment as COLLECTED when the order is delivered.
+     */
+    private void markCodPaymentCollected(Order order, User actor) {
+        paymentRepository.findByOrderId(order.getId()).ifPresent(payment -> {
+            if (payment.getStatus() == PaymentStatus.PENDING_COLLECTION) {
+                payment.setStatus(PaymentStatus.COLLECTED);
+                payment.setUpdatedBy(actor);
+            }
+        });
     }
 
     /**
      * Cancel an order (restocks items).
      *
-     * Rules (v1):
-     * - Retailer can cancel any time before shipping: CREATED / CONFIRMED / ACCEPTED
+     * Rules:
+     * - Retailer can cancel any time before shipping: PAYMENT_PENDING / CONFIRMED / ACCEPTED
      * - Manufacturer can cancel any time before shipping: CONFIRMED / ACCEPTED
      * - No one can cancel after SHIPPED/DELIVERED, or if already REJECTED/CANCELLED
      *
@@ -299,15 +395,23 @@ public class OrderService {
         }
 
         OrderStatus current = order.getStatus();
-        if (current == OrderStatus.CANCELLED || current == OrderStatus.REJECTED || current == OrderStatus.SHIPPED || current == OrderStatus.DELIVERED) {
-            throw new AccessDeniedException("Order cannot be cancelled at current status: " + current);
+
+        // Already cancelled — idempotent-safe for retries
+        if (current == OrderStatus.CANCELLED) {
+            throw new OrderAlreadyCancelledException(orderId);
+        }
+
+        // Terminal states that cannot be cancelled
+        if (current == OrderStatus.REJECTED || current == OrderStatus.SHIPPED || current == OrderStatus.DELIVERED) {
+            throw new InvalidStateTransitionException(
+                    current.name(), OrderStatus.CANCELLED.name());
         }
 
         // Role/stage rules
-        if (current == OrderStatus.CREATED) {
+        if (current == OrderStatus.PAYMENT_PENDING) {
             // Before payment: only retailer should be able to cancel
             if (!(isRetailer && isOrderRetailer)) {
-                throw new AccessDeniedException("Only the retailer can cancel a CREATED order");
+                throw new AccessDeniedException("Only the retailer can cancel a PAYMENT_PENDING order");
             }
         } else if (current == OrderStatus.CONFIRMED || current == OrderStatus.ACCEPTED) {
             // After payment but before shipping: retailer OR manufacturer can cancel (their own order)
@@ -316,7 +420,8 @@ public class OrderService {
                 throw new AccessDeniedException("Only the retailer or manufacturer can cancel this order before shipping");
             }
         } else {
-            throw new AccessDeniedException("Order cannot be cancelled at current status: " + current);
+            throw new InvalidStateTransitionException(
+                    current.name(), OrderStatus.CANCELLED.name());
         }
 
         // Restock
@@ -340,16 +445,37 @@ public class OrderService {
 
         orderAuditService.recordEvent(order, OrderEventType.ORDER_CANCELLED, from, OrderStatus.CANCELLED, actor, note);
 
-        // Refund workflow:
-        // - Retailer cancelling after payment => needs manufacturer approval (creates refund request only).
-        if (isRetailer && (from == OrderStatus.CONFIRMED || from == OrderStatus.ACCEPTED)) {
-            refundService.ensureRefundRequestCreatedForRetailerCancellation(order, actor, reason);
+        // ── Refund workflow (ONLINE orders only) ────────────────────────
+        // COD orders have no gateway payment to refund.
+        boolean isCod = order.getPaymentMethod() == PaymentMethod.CASH_ON_DELIVERY;
+
+        if (!isCod) {
+            // - Retailer cancelling after payment => needs manufacturer approval (creates refund request only).
+            if (isRetailer && (from == OrderStatus.CONFIRMED || from == OrderStatus.ACCEPTED)) {
+                refundService.ensureRefundRequestCreatedForRetailerCancellation(order, actor, reason);
+            }
+
+            // - Manufacturer cancelling after payment => automatic refund processing.
+            if (isManufacturer && (from == OrderStatus.CONFIRMED || from == OrderStatus.ACCEPTED)) {
+                refundService.ensureAutoRefundProcessedForManufacturerCancellation(order, actor, reason);
+            }
         }
 
-        // - Manufacturer cancelling after payment => automatic refund processing.
-        if (isManufacturer && (from == OrderStatus.CONFIRMED || from == OrderStatus.ACCEPTED)) {
-            refundService.ensureAutoRefundProcessedForManufacturerCancellation(order, actor, reason);
+        // COD: cancel the pending-collection payment record
+        if (isCod) {
+            cancelCodPaymentOnCancellation(order, actor);
         }
     }
 
+    /**
+     * When a COD order is cancelled, mark its payment record as FAILED (no money was collected).
+     */
+    private void cancelCodPaymentOnCancellation(Order order, User actor) {
+        paymentRepository.findByOrderId(order.getId()).ifPresent(payment -> {
+            if (payment.getStatus() == PaymentStatus.PENDING_COLLECTION) {
+                payment.setStatus(PaymentStatus.FAILED);
+                payment.setUpdatedBy(actor);
+            }
+        });
+    }
 }

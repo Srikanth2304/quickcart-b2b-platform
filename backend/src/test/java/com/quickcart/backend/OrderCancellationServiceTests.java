@@ -75,7 +75,7 @@ class OrderCancellationServiceTests {
         Order order = orderRepository.save(Order.builder()
                 .retailer(retailer)
                 .manufacturer(manufacturer)
-                .status(OrderStatus.CREATED)
+                .status(OrderStatus.PAYMENT_PENDING)
                 .totalAmount(new BigDecimal("30.00"))
                 .items(List.of(OrderItem.builder().order(null).product(p).quantity(3).price(p.getPrice()).build()))
                 .build());
@@ -325,7 +325,7 @@ class OrderCancellationServiceTests {
         Order order = orderRepository.save(Order.builder()
                 .retailer(retailer)
                 .manufacturer(manufacturer)
-                .status(OrderStatus.CREATED)
+                .status(OrderStatus.PAYMENT_PENDING)
                 .totalAmount(new BigDecimal("1.00"))
                 .items(List.of(OrderItem.builder().product(p).quantity(1).price(p.getPrice()).build()))
                 .build());

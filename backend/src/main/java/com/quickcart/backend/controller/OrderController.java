@@ -13,6 +13,7 @@ import com.quickcart.backend.dto.RefundDecisionRequest;
 import com.quickcart.backend.dto.RefundResponse;
 import com.quickcart.backend.dto.UpdateOrderStatusRequest;
 import com.quickcart.backend.security.CustomUserDetails;
+import com.quickcart.backend.service.IdempotencyService;
 import com.quickcart.backend.service.InvoiceService;
 import com.quickcart.backend.service.OrderAuditService;
 import com.quickcart.backend.service.OrderQueryService;
@@ -40,19 +41,30 @@ public class OrderController {
     private final OrderAuditService orderAuditService;
     private final InvoiceService invoiceService;
     private final RefundService refundService;
+    private final IdempotencyService idempotencyService;
 
     @PostMapping
     @PreAuthorize("hasRole('RETAILER')")
     public ResponseEntity<OrderCreatedResponse> placeOrder(
             @Valid @RequestBody PlaceOrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        var saved = orderService.placeOrder(request, currentUser.getUser());
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(OrderCreatedResponse.builder()
-                        .orderId(saved.getId())
-                        .totalAmount(saved.getTotalAmount())
-                        .build());
+        return idempotencyService.executeIdempotent(
+                idempotencyKey,
+                "POST /orders",
+                OrderCreatedResponse.class,
+                () -> {
+                    var saved = orderService.placeOrder(request, currentUser.getUser());
+                    return ResponseEntity.status(HttpStatus.CREATED)
+                            .body(OrderCreatedResponse.builder()
+                                    .orderId(saved.getId())
+                                    .status(saved.getStatus().name())
+                                    .paymentMethod(saved.getPaymentMethod().name())
+                                    .totalAmount(saved.getTotalAmount())
+                                    .build());
+                }
+        );
     }
 
     /**
@@ -69,18 +81,22 @@ public class OrderController {
     }
 
     /**
-     * ✅ PAGINATED ORDERS (with optional status filtering)
+     * ✅ PAGINATED ORDERS (with optional status filtering, search, and sorting)
+     *
+     * GET /orders?page=0&size=10&status=ACTIVE&search=keyword&sort=createdAt,desc
      */
     @GetMapping
     public ResponseEntity<Page<OrderResponse>> getOrders(
             @AuthenticationPrincipal CustomUserDetails currentUser,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search,
             Pageable pageable
     ) {
         return ResponseEntity.ok(
                 orderQueryService.getOrders(
                         currentUser.getUser(),
                         status,
+                        search,
                         pageable
                 )
         );
@@ -155,14 +171,14 @@ public class OrderController {
     @PreAuthorize("hasRole('MANUFACTURER')")
     public ResponseEntity<String> createShipment(
             @PathVariable Long orderId,
-            @Valid @RequestBody CreateShipmentRequest request,
+            @Valid @RequestBody(required = false) CreateShipmentRequest request,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
         orderService.createShipment(
                 orderId,
-                request.getCarrier(),
-                request.getTrackingNumber(),
-                request.getTrackingUrl(),
+                request == null ? null : request.getCarrier(),
+                request == null ? null : request.getTrackingNumber(),
+                request == null ? null : request.getTrackingUrl(),
                 currentUser.getUser()
         );
         return ResponseEntity.ok("Shipment created");
@@ -183,11 +199,19 @@ public class OrderController {
     public ResponseEntity<String> cancelOrder(
             @PathVariable Long orderId,
             @Valid @RequestBody(required = false) CancelOrderRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        String reason = request == null ? null : request.getReason();
-        orderService.cancelOrder(orderId, reason, currentUser.getUser());
-        return ResponseEntity.ok("Order cancelled");
+        return idempotencyService.executeIdempotent(
+                idempotencyKey,
+                "POST /orders/" + orderId + "/cancel",
+                String.class,
+                () -> {
+                    String reason = request == null ? null : request.getReason();
+                    orderService.cancelOrder(orderId, reason, currentUser.getUser());
+                    return ResponseEntity.ok("Order cancelled");
+                }
+        );
     }
 
     @PostMapping("/{orderId}/refund/approve")

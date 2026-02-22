@@ -7,6 +7,7 @@ import com.quickcart.backend.dto.RazorpayCreateOrderResponse;
 import com.quickcart.backend.dto.RazorpayKeyResponse;
 import com.quickcart.backend.dto.RazorpayVerifyPaymentRequest;
 import com.quickcart.backend.security.CustomUserDetails;
+import com.quickcart.backend.service.IdempotencyService;
 import com.quickcart.backend.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class PaymentController {
 
     private final PaymentService paymentService;
     private final RazorpayProperties razorpayProperties;
+    private final IdempotencyService idempotencyService;
 
     /**
      * Expose Razorpay public key id for frontend checkout.
@@ -69,10 +71,18 @@ public class PaymentController {
     @PreAuthorize("hasRole('RETAILER')")
     public ResponseEntity<String> verifyRazorpayPayment(
             @Valid @RequestBody RazorpayVerifyPaymentRequest request,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        paymentService.verifyRazorpayPayment(request, currentUser.getUser());
-        return ResponseEntity.ok("Payment verified");
+        return idempotencyService.executeIdempotent(
+                idempotencyKey,
+                "POST /payments/razorpay/verify",
+                String.class,
+                () -> {
+                    paymentService.verifyRazorpayPayment(request, currentUser.getUser());
+                    return ResponseEntity.ok("Payment verified");
+                }
+        );
     }
 
     @GetMapping("/order/{orderId}")

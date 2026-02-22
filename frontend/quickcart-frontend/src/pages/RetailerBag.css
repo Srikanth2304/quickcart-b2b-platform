@@ -744,6 +744,70 @@
   filter: brightness(1.05);
 }
 
+/* ═══ Payment Method Selector ═══ */
+.bag-payment-panel {
+  border: 1.5px solid #e0e7ff;
+  background: #fafaff;
+}
+.bag-payment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+.bag-payment-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+.bag-payment-option:hover {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+}
+.bag-payment-option.active {
+  border-color: #7c3aed;
+  background: #f0edff;
+  box-shadow: 0 0 0 2px #c4b5fd44;
+}
+.bag-payment-option input[type="radio"] {
+  accent-color: #7c3aed;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.bag-payment-option-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+.bag-payment-option-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.bag-payment-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bag-payment-option-title {
+  font-weight: 600;
+  font-size: 0.97rem;
+  color: #1e293b;
+}
+.bag-payment-option-desc {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
 @media (max-width: 1024px) {
   .retailer-bag-layout {
     grid-template-columns: 1fr;

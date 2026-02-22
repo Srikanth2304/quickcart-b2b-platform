@@ -35,7 +35,29 @@ public class ProductReviewController {
             @PathVariable Long productId,
             @AuthenticationPrincipal CustomUserDetails currentUser
     ) {
-        return ResponseEntity.ok(productReviewService.getMyReview(productId, currentUser.getUser()));
+
+        ProductReviewResponse review = productReviewService.getMyReview(productId, currentUser.getUser());
+        if (review == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(review);
+    }
+
+    /**
+     * Alias: GET /products/{productId}/reviews/my
+     * Frontend compatibility — same as /me.
+     */
+    @GetMapping("/my")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ProductReviewResponse> getMyReviewAlias(
+            @PathVariable Long productId,
+            @AuthenticationPrincipal CustomUserDetails currentUser
+    ) {
+        ProductReviewResponse review = productReviewService.getMyReview(productId, currentUser.getUser());
+        if (review == null) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(review);
     }
 
     @PutMapping("/me")

@@ -1,0 +1,96 @@
+/* ══════════════════════════════════════════
+   Loader / Spinner — QuickCart B2B
+   ══════════════════════════════════════════ */
+
+/* ── Spinner keyframe ── */
+@keyframes qc-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes qc-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+/* ── Spinner element ── */
+.qc-spinner {
+  border-radius: 50%;
+  border-style: solid;
+  border-color: rgba(37, 99, 235, 0.15);
+  border-top-color: #2563eb;
+  animation: qc-spin 0.7s linear infinite;
+}
+
+/* ── Sizes ── */
+.qc-loader--sm .qc-spinner {
+  width: 18px;
+  height: 18px;
+  border-width: 2.5px;
+}
+
+.qc-loader--md .qc-spinner {
+  width: 32px;
+  height: 32px;
+  border-width: 3.5px;
+}
+
+.qc-loader--lg .qc-spinner {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+/* ── Layout ── */
+.qc-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.qc-loader-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  animation: qc-pulse 1.5s ease-in-out infinite;
+  letter-spacing: 0.01em;
+}
+
+/* ── Full-page mode ── */
+.qc-loader-fullpage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  width: 100%;
+}
+
+/* ── Overlay mode (e.g. over a button / section) ── */
+.qc-loader-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(2px);
+  border-radius: inherit;
+  z-index: 10;
+}
+
+/* ── Inline button spinner ── */
+.qc-btn-spinner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qc-btn-spinner .qc-spinner {
+  width: 16px;
+  height: 16px;
+  border-width: 2px;
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
+}

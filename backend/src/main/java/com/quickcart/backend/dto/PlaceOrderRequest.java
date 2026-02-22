@@ -1,5 +1,6 @@
 package com.quickcart.backend.dto;
 
+import com.quickcart.backend.entity.PaymentMethod;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -14,4 +15,10 @@ public class PlaceOrderRequest {
 
     @NotNull(message = "deliveryAddressId is required")
     private Long deliveryAddressId;
+
+    /**
+     * Payment method for this order.
+     * Defaults to ONLINE if not provided (backward compatible).
+     */
+    private PaymentMethod paymentMethod;
 }

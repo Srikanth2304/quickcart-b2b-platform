@@ -47,6 +47,11 @@ app:
   bootstrap:
     admin:
       enabled: false
+  orders:
+    expiry:
+      enabled: true
+      unpaidTimeoutMinutes: 30
+      fixedDelayMs: 300000
   refunds:
     processor:
       # Refund completion fallback.
