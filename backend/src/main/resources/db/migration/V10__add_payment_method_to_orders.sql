@@ -9,4 +9,3 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(30) NOT NULL 
 
 -- Update payments status enum: allow 'PENDING_COLLECTION' and 'COLLECTED' for COD
 -- (No constraint change needed — PostgreSQL VARCHAR enum is application-enforced)
-

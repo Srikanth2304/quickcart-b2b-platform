@@ -58,7 +58,7 @@ app:
       # Production: ideally completed by payment gateway refund callbacks/webhooks.
       # Enabled by default to enforce the 5-minute auto-complete rule.
       enabled: true
-      fixedDelayMs: 2000
+      fixedDelayMs: 60000
       autoCompleteAfterMinutes: 5
 
   # Razorpay credentials must be supplied via env vars/secrets in production.
