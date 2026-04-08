@@ -35,9 +35,14 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const config = error.config || {};
+    const status = error.response?.status;
+
+    if (error.response?.data) {
+      console.error(error.response.data);
+    }
 
     // 401 / 403 → Session expired → force logout
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    if (status === 401 || status === 403) {
       const isLoginRequest = (config.url || "").includes("/auth/login");
       if (!isLoginRequest) {
         localStorage.removeItem("token");
@@ -58,13 +63,17 @@ api.interceptors.response.use(
     const isTransient =
       !error.response || // network error
       error.code === "ECONNABORTED" || // timeout
-      (error.response?.status >= 500 && error.response?.status < 600);
+      (status >= 500 && status < 600);
 
     if (isRetryable && isTransient && (config._retryCount || 0) < MAX_RETRIES) {
       config._retryCount = (config._retryCount || 0) + 1;
       const delay = RETRY_DELAY_MS * config._retryCount; // linear backoff
       await new Promise((resolve) => setTimeout(resolve, delay));
       return api(config);
+    }
+
+    if (status >= 400 && status < 600) {
+      showToast("API Error. Please check backend logs.", "error");
     }
 
     return Promise.reject(error);

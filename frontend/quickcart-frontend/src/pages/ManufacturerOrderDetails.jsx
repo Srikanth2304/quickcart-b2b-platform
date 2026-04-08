@@ -5,6 +5,18 @@ import { showToast } from "../utils/notify";
 import Loader from "../components/Loader";
 import "./ManufacturerOrderDetails.css";
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
+function normalizeOrderStatus(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "PAID") return "CONFIRMED";
+  return s;
+}
+
 function formatCurrency(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value)))
     return "-";
@@ -57,7 +69,7 @@ const TRACKING_STEPS = [
 ];
 
 function getStepIndex(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s.includes("DELIVER") && !s.includes("OUT")) return 4;
   if (s.includes("SHIP")) return 3;
   if (s.includes("ACCEPT")) return 2;
@@ -66,7 +78,7 @@ function getStepIndex(status) {
 }
 
 function getLifecycleActions(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s === "PAYMENT_PENDING") return ["cancel"];
   if (s === "CONFIRMED") return ["accept", "reject", "cancel"];
   if (s === "ACCEPTED") return ["ship", "cancel"];
@@ -102,7 +114,7 @@ const STATUS_STYLE = {
 };
 
 function getStatusStyle(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s.includes("REJECT")) return STATUS_STYLE.REJECTED;
   if (s.includes("CANCEL")) return STATUS_STYLE.CANCELLED;
   if (s.includes("DELIVER") && !s.includes("OUT")) return STATUS_STYLE.DELIVERED;
@@ -111,6 +123,15 @@ function getStatusStyle(status) {
   if (s.includes("CONFIRM")) return STATUS_STYLE.CONFIRMED;
   if (s === "PAYMENT_PENDING") return STATUS_STYLE.PAYMENT_PENDING;
   return STATUS_STYLE.CREATED;
+}
+
+const SHIPMENT_STEPS = ["CREATED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"];
+
+function getShipmentStepIndex(status) {
+  const raw = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const normalized = raw === "SHIPPED" ? "IN_TRANSIT" : raw;
+  const idx = SHIPMENT_STEPS.findIndex((step) => step === normalized);
+  return idx >= 0 ? idx : -1;
 }
 
 function isRefundPending(status) {
@@ -131,6 +152,7 @@ export default function ManufacturerOrderDetails() {
   const [refund, setRefund] = useState(null);
   const [refundLoading, setRefundLoading] = useState(false);
   const [refundActionInProgress, setRefundActionInProgress] = useState(null);
+  const [shipment, setShipment] = useState(null);
 
   // Lifecycle
   const [lifecycleInProgress, setLifecycleInProgress] = useState(null);
@@ -149,7 +171,7 @@ export default function ManufacturerOrderDetails() {
       try {
         const res = await api.get(`/orders/${orderId}`);
         if (!isMounted) return;
-        const orderData = res?.data || null;
+        const orderData = unwrapApiData(res?.data) || null;
         setOrder(orderData);
 
         // Fetch product images
@@ -160,7 +182,7 @@ export default function ManufacturerOrderDetails() {
             if (!item.productId) return;
             try {
               const pRes = await api.get(`/products/${item.productId}`);
-              const p = pRes?.data;
+              const p = unwrapApiData(pRes?.data) || {};
               imgMap[item.productId] = {
                 imageUrl: p?.imageUrl || p?.image || p?.thumbnail || "",
                 brand: p?.brand || "",
@@ -180,13 +202,20 @@ export default function ManufacturerOrderDetails() {
           try {
             setRefundLoading(true);
             const rRes = await api.get(`/orders/${orderId}/refund`);
-            if (isMounted) setRefund(rRes?.data || null);
+            if (isMounted) setRefund(unwrapApiData(rRes?.data) || null);
           } catch (err) {
             // 404 = no refund record exists, safely set null
             if (isMounted) setRefund(null);
           } finally {
             if (isMounted) setRefundLoading(false);
           }
+        }
+
+        try {
+          const shipmentRes = await api.get(`/shipments/${orderId}`);
+          if (isMounted) setShipment(unwrapApiData(shipmentRes?.data) || null);
+        } catch {
+          if (isMounted) setShipment(null);
         }
       } catch {
         if (isMounted) setError("Failed to load order details.");
@@ -206,15 +235,32 @@ export default function ManufacturerOrderDetails() {
     try {
       const endpoint = LIFECYCLE_ENDPOINTS[action];
       if (!endpoint) return;
-      await api.post(endpoint(orderId));
+      if (action === "deliver") {
+        const shipmentId = shipment?.id || shipment?.shipmentId || null;
+        const payload = { status: "DELIVERED" };
+        console.log("=== Shipment Update Triggered ===");
+        console.log("Shipment ID:", shipmentId);
+        console.log("Payload:", payload);
+        console.log("API URL:", shipmentId ? `/shipments/${shipmentId}` : "N/A (shipmentId missing)");
+        if (!shipmentId) {
+          console.error("Shipment ID is missing — cannot update shipment");
+        }
+        console.log("Lifecycle API actually called:", endpoint(orderId));
+      }
+
+      const response = await api.post(endpoint(orderId));
+      if (action === "deliver") {
+        console.log("Shipment Update Response:", response?.data);
+      }
       // Re-fetch order
       const res = await api.get(`/orders/${orderId}`);
-      if (res?.data) setOrder(res.data);
+      const orderPayload = unwrapApiData(res?.data);
+      if (orderPayload) setOrder(orderPayload);
       // Fetch refund for cancel/reject (refund may be auto-created)
       if (action === "reject" || action === "cancel") {
         try {
           const rRes = await api.get(`/orders/${orderId}/refund`);
-          setRefund(rRes?.data || null);
+          setRefund(unwrapApiData(rRes?.data) || null);
         } catch {
           // no refund record created yet
         }
@@ -235,7 +281,7 @@ export default function ManufacturerOrderDetails() {
       await api.post(`/orders/${orderId}/refund/${action}`);
       try {
         const rRes = await api.get(`/orders/${orderId}/refund`);
-        setRefund(rRes?.data || null);
+        setRefund(unwrapApiData(rRes?.data) || null);
       } catch (err) {
         if (err?.response?.status === 404) {
           setRefund(null);
@@ -256,7 +302,7 @@ export default function ManufacturerOrderDetails() {
   if (!orderId) return null;
 
   const status = order?.status || "";
-  const statusUpper = status.toUpperCase().replace(/[\s-]/g, "_");
+  const statusUpper = normalizeOrderStatus(status);
   const activeStep = getStepIndex(status);
   const isDelivered = statusUpper.includes("DELIVER") && !statusUpper.includes("OUT");
   const isCancelled = statusUpper.includes("CANCEL");
@@ -279,8 +325,12 @@ export default function ManufacturerOrderDetails() {
   const isCodOrder = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
 
   // Shipment info
-  const trackingNumber = order?.trackingNumber || order?.shipment?.trackingNumber || "";
-  const carrierName = order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName || "";
+  const trackingNumber = shipment?.trackingNumber || order?.trackingNumber || order?.shipment?.trackingNumber || "";
+  const carrierName = shipment?.carrierName || shipment?.carrier || order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName || "";
+  const trackingUrl = shipment?.trackingUrl || "";
+  const shipmentStatus = (shipment?.status || shipment?.shipmentStatus || "").toUpperCase().replace(/[\s-]/g, "_");
+  const shipmentEstimatedDeliveryDate = shipment?.estimatedDeliveryDate || "";
+  const shipmentStepIndex = getShipmentStepIndex(shipmentStatus);
 
   // Address
   const addr = order?.deliveryAddress || order?.address || {};
@@ -428,7 +478,12 @@ export default function ManufacturerOrderDetails() {
                           type="button"
                           className={`mod-action-btn ${cfg.className}`}
                           disabled={!!lifecycleInProgress}
-                          onClick={() => setConfirmModal({ action, type: "lifecycle" })}
+                          onClick={() => {
+                            if (action === "deliver") {
+                              console.log("Mark Delivered button clicked");
+                            }
+                            setConfirmModal({ action, type: "lifecycle" });
+                          }}
                         >
                           {isProcessing ? "Processing…" : `${cfg.icon} ${cfg.label}`}
                         </button>
@@ -479,10 +534,16 @@ export default function ManufacturerOrderDetails() {
               </div>
 
               {/* ===== Shipment Details ===== */}
-              {(trackingNumber || carrierName) && (
+              {(shipment || trackingNumber || carrierName) && (
                 <div className="mod-card">
                   <div className="mod-section-title">Shipment Details</div>
                   <div className="mod-detail-grid">
+                    {shipmentStatus && (
+                      <div className="mod-detail-row">
+                        <span className="mod-detail-label">Status</span>
+                        <span className="mod-detail-value">{shipmentStatus}</span>
+                      </div>
+                    )}
                     {carrierName && (
                       <div className="mod-detail-row">
                         <span className="mod-detail-label">Carrier</span>
@@ -493,6 +554,18 @@ export default function ManufacturerOrderDetails() {
                       <div className="mod-detail-row">
                         <span className="mod-detail-label">Tracking Number</span>
                         <span className="mod-detail-value mod-mono">{trackingNumber}</span>
+                      </div>
+                    )}
+                    {trackingUrl && (
+                      <div className="mod-detail-row">
+                        <span className="mod-detail-label">Tracking URL</span>
+                        <a className="mod-detail-value" href={trackingUrl} target="_blank" rel="noreferrer">Open Tracking</a>
+                      </div>
+                    )}
+                    {shipmentEstimatedDeliveryDate && (
+                      <div className="mod-detail-row">
+                        <span className="mod-detail-label">Estimated Delivery</span>
+                        <span className="mod-detail-value">{formatDateTime(shipmentEstimatedDeliveryDate)}</span>
                       </div>
                     )}
                     {shippedDate && (
@@ -507,6 +580,25 @@ export default function ManufacturerOrderDetails() {
                         <span className="mod-detail-value">{formatDateTime(deliveredDate)}</span>
                       </div>
                     )}
+                  </div>
+                  <div className="mod-timeline">
+                    {SHIPMENT_STEPS.map((step, i) => {
+                      const done = shipmentStepIndex >= 0 && i <= shipmentStepIndex;
+                      const current = shipmentStepIndex === i;
+                      return (
+                        <div className={`mod-step ${done ? "mod-step--done" : ""} ${current ? "mod-step--current" : ""}`} key={step}>
+                          <div className="mod-step-dot-col">
+                            <span className={`mod-step-dot ${done ? "mod-step-dot--done" : ""}`} />
+                            {i < SHIPMENT_STEPS.length - 1 && (
+                              <span className={`mod-step-line ${done && shipmentStepIndex > i ? "mod-step-line--done" : ""}`} />
+                            )}
+                          </div>
+                          <div className="mod-step-text">
+                            <span className="mod-step-label">{step}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -653,7 +745,7 @@ export default function ManufacturerOrderDetails() {
                       </span>
                     </div>
                   )}
-                  {!isCodOrder && !isCodOrder && paymentId && (
+                  {!isCodOrder && paymentId && (
                     <div className="mod-detail-row">
                       <span className="mod-detail-label">Payment ID</span>
                       <span className="mod-detail-value mod-mono">{paymentId}</span>

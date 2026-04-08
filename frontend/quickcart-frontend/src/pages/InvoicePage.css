@@ -1,0 +1,287 @@
+.inv-page {
+  padding: 110px 20px 36px;
+  background: #f4f6fb;
+  min-height: 100vh;
+}
+
+.inv-topbar {
+  max-width: 1100px;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.inv-topbar-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.inv-btn {
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.inv-btn-primary {
+  color: #fff;
+  background: #2563eb;
+}
+
+.inv-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.inv-btn-secondary {
+  color: #1f2937;
+  background: #e5e7eb;
+}
+
+.inv-state {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #ececf3;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.inv-error {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.inv-card {
+  max-width: 1100px;
+  margin: 0 auto;
+  background: #fff;
+  border: 1px solid #ececf3;
+  border-radius: 14px;
+  padding: 22px;
+}
+
+.inv-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  border-bottom: 1px solid #e5e7eb;
+  padding-bottom: 16px;
+  margin-bottom: 14px;
+}
+
+.inv-company {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.inv-logo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.inv-logo-placeholder {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  background: #eef2ff;
+  color: #3730a3;
+  font-weight: 700;
+}
+
+.inv-company-name {
+  margin: 0;
+  font-size: 20px;
+  color: #111827;
+}
+
+.inv-company-address {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.inv-title-wrap {
+  text-align: right;
+}
+
+.inv-title {
+  margin: 0;
+  color: #111827;
+  letter-spacing: 0.04em;
+}
+
+.inv-cancelled-label {
+  margin-top: 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fee2e2;
+  border: 1px solid #fecaca;
+}
+
+.inv-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.inv-grid-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.inv-panel {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.inv-panel h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: #111827;
+}
+
+.inv-subheading {
+  margin-top: 16px !important;
+}
+
+.inv-kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px dashed #f1f5f9;
+}
+
+.inv-kv span {
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.inv-kv strong {
+  color: #111827;
+  font-size: 13px;
+  text-align: right;
+}
+
+.inv-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.inv-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 680px;
+}
+
+.inv-table th,
+.inv-table td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px;
+  text-align: left;
+  font-size: 13px;
+}
+
+.inv-table th {
+  background: #f8fafc;
+  color: #374151;
+}
+
+.inv-empty-row {
+  text-align: center;
+  color: #6b7280;
+}
+
+.inv-summary {
+  margin-top: 14px;
+  margin-left: auto;
+  width: min(100%, 360px);
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+}
+
+.inv-summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 13px;
+}
+
+.inv-summary-total {
+  margin-top: 6px;
+  border-top: 1px solid #dbeafe;
+  color: #1d4ed8;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  .inv-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .inv-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .inv-title-wrap {
+    text-align: left;
+  }
+}
+
+@media (max-width: 640px) {
+  .inv-page {
+    padding: 92px 12px 24px;
+  }
+
+  .inv-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .inv-topbar-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .inv-btn {
+    width: 100%;
+  }
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .inv-page {
+    padding: 0;
+    background: #fff;
+  }
+
+  .inv-card {
+    max-width: none;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+  }
+}

@@ -1,0 +1,60 @@
+status,method,postmanEndpoint,postmanName,postmanDomain
+UNUSED_POSTMAN,POST,/admin/users,Step 02 - Step 2 - Create ADMIN,Admin APIs
+UNUSED_POSTMAN,POST,/auth/register,Step 05 - Step 5 - Register MANUFACTURER,Auth APIs
+UNUSED_POSTMAN,GET,/users/pending,Step 08 - Step 8 - Get Pending Users,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{manufacturerPendingUserId}}/approve,Step 09 - Step 9 - Approve MANUFACTURER,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{retailerPendingUserId}}/approve,Step 10 - Step 9 - Approve RETAILER,Admin APIs
+UNUSED_POSTMAN,POST,/brands/bulk,Step 01 - Bulk Create Brands,Product APIs
+UNUSED_POSTMAN,POST,/categories/bulk,Step 02 - Bulk Create Categories,Product APIs
+UNUSED_POSTMAN,GET,/categories,Step 03 - List Categories,Product APIs
+UNUSED_POSTMAN,GET,/categories/tree,Step 04 - Get Category Tree,Product APIs
+UNUSED_POSTMAN,POST,/products/bulk,Step 05 - Bulk Create Products,Product APIs
+UNUSED_POSTMAN,POST,/products,Step 06 - Create Product,Product APIs
+UNUSED_POSTMAN,PATCH,/variants/{{variantId}},Step 07 - Update Variant,Product APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/accept,Step 04 - Accept Order (Manufacturer),Order APIs
+UNUSED_POSTMAN,POST,/shipments,Step 05 - Create Shipment (Manufacturer),Order APIs
+UNUSED_POSTMAN,PATCH,/shipments/{{shipmentId}}/status,Step 06 - Update Shipment Status - IN_TRANSIT,Order APIs
+UNUSED_POSTMAN,GET,/shipments/{{orderId}},Step 09 - Get Shipment by Order (Retailer),Order APIs
+UNUSED_POSTMAN,GET,/orders/{{orderId}}/events,Step 10 - Get Order Events,Order APIs
+UNUSED_POSTMAN,GET,/payments/order/{{orderId}},Step 11 - Get Payment For Order,Order APIs
+UNUSED_POSTMAN,POST,/returns,Step 01 - Request Return (Retailer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/approve,Step 02 - Approve Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/receive,Step 03 - Receive Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/inspect,Step 04 - Inspect Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/complete,Step 05 - Complete Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,GET,/returns/{{returnId}},Step 06 - Get Return By Id (Retailer),Return APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/refund/approve,Step 05 - Approve Refund,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/refund/reject,Step 11 - Reject Refund,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/reject,Step 16 - Reject Order (Manufacturer),Order APIs
+UNUSED_POSTMAN,POST,/cart/reserve,Step 01 - Reserve Cart Item,Cart APIs
+UNUSED_POSTMAN,GET,/cart/reservations,Step 02 - Get Active Reservations,Cart APIs
+UNUSED_POSTMAN,DELETE,/cart/reserve/{{reservationId}},Step 03 - Cancel Reservation,Cart APIs
+UNUSED_POSTMAN,POST,/inventory/batches,Step 04 - Create Inventory Batch,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/batches,Step 05 - List Inventory Batches,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/batches/{{batchId}},Step 06 - Get Inventory Batch By Id,Admin APIs
+UNUSED_POSTMAN,PATCH,/inventory/batches/{{batchId}},Step 07 - Update Inventory Batch,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/low-stock,Step 08 - Get Low Stock (Catalog Manager),Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/reject,Reject User,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/deactivate,Deactivate User,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/activate,Activate User,Admin APIs
+UNUSED_POSTMAN,GET,/categories/{{categoryId}},Get Category By Id,Category APIs
+UNUSED_POSTMAN,PUT,/categories/{{categoryId}},Update Category,Category APIs
+UNUSED_POSTMAN,PATCH,/categories/{{categoryId}}/deactivate,Deactivate Category,Category APIs
+UNUSED_POSTMAN,GET,/brands,List Brands,Brand APIs
+UNUSED_POSTMAN,GET,/brands/{{brandId}},Get Brand By Id,Brand APIs
+UNUSED_POSTMAN,PUT,/brands/{{brandId}},Update Brand,Brand APIs
+UNUSED_POSTMAN,PATCH,/brands/{{brandId}}/deactivate,Deactivate Brand,Brand APIs
+UNUSED_POSTMAN,PUT,/products/{{productId}},Update Product,Product APIs
+UNUSED_POSTMAN,PATCH,/products/{{productId}}/deactivate,Deactivate Product,Product APIs
+UNUSED_POSTMAN,GET,/orders/{{orderId}}/invoice,Get Invoice For Order,Order APIs
+UNUSED_POSTMAN,PUT,/orders/{{orderId}}/status,Update Order Status,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/shipment,Create Shipment,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/deliver,Mark Delivered,Order APIs
+UNUSED_POSTMAN,POST,/payments,Initiate Payment,Payment APIs
+UNUSED_POSTMAN,GET,/products/{{reviewProductId}}/reviews,List Reviews,Product APIs
+UNUSED_POSTMAN,GET,/products/{{reviewProductId}}/reviews/me,Get My Review (/me),Product APIs
+UNUSED_POSTMAN,PUT,/products/{{reviewProductId}}/reviews/me,Upsert My Review,Product APIs
+UNUSED_POSTMAN,DELETE,/products/{{reviewProductId}}/reviews/me,Delete My Review,Product APIs
+UNUSED_POSTMAN,GET,/invoices,Get Retailer Invoices,Admin APIs
+UNUSED_POSTMAN,POST,/webhooks/razorpay,Razorpay Webhook,Admin APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/reject,Reject Return (Manufacturer),Return APIs

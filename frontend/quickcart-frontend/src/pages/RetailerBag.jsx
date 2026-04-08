@@ -33,6 +33,30 @@ function saveWishlist(items) {
   }
 }
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
+function idsEqual(a, b) {
+  if (a === null || a === undefined || b === null || b === undefined) return false;
+  return String(a) === String(b);
+}
+
+const EMPTY_ADDRESS_FORM = {
+  name: "",
+  phone: "",
+  alternatePhone: "",
+  addressType: "HOME",
+  locality: "",
+  landmark: "",
+  addressLine1: "",
+  city: "",
+  state: "",
+  pincode: "",
+};
+
 export default function RetailerBag() {
   const navigate = useNavigate();
   const [items, setItems] = useState(() => getBagItems());
@@ -42,24 +66,20 @@ export default function RetailerBag() {
   const [addressPanelOpen, setAddressPanelOpen] = useState(false);
   const [addressFormOpen, setAddressFormOpen] = useState(false);
   const [addressList, setAddressList] = useState(() => []);
-  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [selectedAddressId, setSelectedAddressId] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("checkout-selected-address-id");
+      return saved || null;
+    } catch (error) {
+      return null;
+    }
+  });
   const [addressLoading, setAddressLoading] = useState(false);
   const [addressError, setAddressError] = useState("");
   const [editingAddressId, setEditingAddressId] = useState(null);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("ONLINE");
-  const [addressForm, setAddressForm] = useState({
-    name: "",
-    phone: "",
-    alternatePhone: "",
-    addressType: "HOME",
-    locality: "",
-    landmark: "",
-    addressLine1: "",
-    city: "",
-    state: "",
-    pincode: "",
-  });
+  const [addressForm, setAddressForm] = useState(EMPTY_ADDRESS_FORM);
 
   useEffect(() => {
     const refresh = () => setItems(getBagItems());
@@ -71,28 +91,54 @@ export default function RetailerBag() {
     };
   }, []);
 
-  const refreshAddresses = async () => {
+  const refreshAddresses = async (preferredAddressId = null) => {
     setAddressLoading(true);
     setAddressError("");
     try {
       const response = await api.get("/addresses");
-      const list = Array.isArray(response.data) ? response.data : response.data?.content || [];
+      const payload = unwrapApiData(response.data);
+      const list = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.content)
+        ? payload.content
+        : [];
       setAddressList(list);
       if (list.length === 0) {
         setAddressFormOpen(true);
         setSelectedAddressId(null);
         setAddress(null);
-      } else if (!selectedAddressId || !list.some((item) => item?.id === selectedAddressId)) {
-        const defaultAddress = list.find((item) => item?.isDefault) || list[0];
-        setSelectedAddressId(defaultAddress?.id || null);
-        setAddress(defaultAddress || null);
+        return [];
       }
+
+      const nextSelectedId =
+        preferredAddressId !== null && preferredAddressId !== undefined
+          ? preferredAddressId
+          : selectedAddressId;
+      const selected = list.find((item) => idsEqual(item?.id, nextSelectedId));
+      const resolvedAddress = selected || list.find((item) => item?.isDefault) || list[0] || null;
+
+      setSelectedAddressId(resolvedAddress?.id || null);
+      setAddress(resolvedAddress || null);
+      return list;
     } catch (error) {
       setAddressError("Failed to load addresses.");
+      return [];
     } finally {
       setAddressLoading(false);
     }
   };
+
+  useEffect(() => {
+    try {
+      if (selectedAddressId === null || selectedAddressId === undefined) {
+        sessionStorage.removeItem("checkout-selected-address-id");
+      } else {
+        sessionStorage.setItem("checkout-selected-address-id", String(selectedAddressId));
+      }
+    } catch (error) {
+      // Ignore session storage errors
+    }
+  }, [selectedAddressId]);
 
   useEffect(() => {
     if (!addressPanelOpen) return;
@@ -115,9 +161,13 @@ export default function RetailerBag() {
     setEditingAddressId(null);
   };
 
+  const resetAddressForm = () => {
+    setAddressForm(EMPTY_ADDRESS_FORM);
+  };
+
   const handleDeliverHere = () => {
     if (!selectedAddressId) return;
-    const selected = addressList.find((item) => item.id === selectedAddressId);
+    const selected = addressList.find((item) => idsEqual(item.id, selectedAddressId));
     if (!selected) return;
     setAddress(selected);
     setAddressPanelOpen(false);
@@ -129,6 +179,9 @@ export default function RetailerBag() {
 
   const handleSaveAddress = async () => {
     try {
+      setAddressError("");
+      let targetAddressId = null;
+
       if (editingAddressId) {
         const original = addressList.find((item) => item.id === editingAddressId);
         if (!original) return;
@@ -146,6 +199,7 @@ export default function RetailerBag() {
           pincode: pick(addressForm.pincode, original.pincode),
         };
         await api.patch(`/addresses/${editingAddressId}`, payload);
+        targetAddressId = editingAddressId;
         showToast("Address updated", "success");
       } else {
         const payload = {
@@ -161,16 +215,30 @@ export default function RetailerBag() {
           pincode: addressForm.pincode,
           isDefault: addressList.length === 0,
         };
-        await api.post("/addresses", payload);
+        const createResponse = await api.post("/addresses", payload);
+        const createdAddress = unwrapApiData(createResponse?.data) || {};
+        targetAddressId = createdAddress?.id ?? createdAddress?.addressId ?? null;
+
+        if (targetAddressId) {
+          setAddressList((prev) => {
+            if (prev.some((item) => item?.id === targetAddressId)) return prev;
+            return [createdAddress, ...prev];
+          });
+        }
+
         showToast("Address saved", "success");
       }
 
+      await refreshAddresses(targetAddressId);
+
+      setAddressPanelOpen(false);
       setAddressFormOpen(false);
       setEditingAddressId(null);
-      await refreshAddresses();
-      setAddressPanelOpen(true);
+      resetAddressForm();
     } catch (error) {
-      showToast("Failed to save address", "error");
+      const message = error?.response?.data?.message || "Failed to save address";
+      setAddressError(message);
+      showToast(message, "error");
     }
   };
 
@@ -295,10 +363,37 @@ export default function RetailerBag() {
   };
 
   const isSummaryStep = checkoutStep === "summary";
+  const hasValidSelectedAddress = Boolean(
+    selectedAddressId && addressList.some((item) => idsEqual(item?.id, selectedAddressId))
+  );
 
   const fetchRazorpayKey = async () => {
     const response = await api.get("/payments/razorpay/key");
-    return response?.data?.keyId || "";
+    const payload = unwrapApiData(response?.data) || {};
+    return payload?.keyId || "";
+  };
+
+  const buildCancelPayload = (reason, comments = "") => ({
+    reason,
+    comments: comments || "",
+    refundMode: "ORIGINAL",
+  });
+
+  const cancelOrderWithPayload = async (orderId, reason, comments = "") => {
+    await api.post(`/orders/${orderId}/cancel`, buildCancelPayload(reason, comments));
+  };
+
+  const handlePaymentStepClick = () => {
+    if (!isSummaryStep) {
+      if (selectedIds.size === 0) {
+        showToast("Select an item first", "info");
+        return;
+      }
+      setCheckoutStep("summary");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    handlePlaceOrder();
   };
 
   const handlePlaceOrder = async () => {
@@ -324,7 +419,8 @@ export default function RetailerBag() {
     let orderId = null;
     try {
       const orderResponse = await api.post("/orders", payload);
-      orderId = orderResponse?.data?.orderId;
+      const orderPayload = unwrapApiData(orderResponse?.data) || {};
+      orderId = orderPayload?.orderId;
       if (!orderId) {
         showToast("Failed to create order", "error");
         setPlacingOrder(false);
@@ -347,13 +443,18 @@ export default function RetailerBag() {
 
       // ── ONLINE: proceed with Razorpay ──
       const razorpayResponse = await api.post("/payments/razorpay/order", { orderId });
-      const razorpayOrderId = razorpayResponse?.data?.razorpayOrderId;
-      const amount = razorpayResponse?.data?.amount;
-      const currency = razorpayResponse?.data?.currency || "INR";
+      const razorpayPayload = unwrapApiData(razorpayResponse?.data) || {};
+      const razorpayOrderId = razorpayPayload?.razorpayOrderId;
+      const amount = Number(razorpayPayload?.amount);
+      const currency = razorpayPayload?.currency || "INR";
 
-      if (!razorpayOrderId || !amount) {
+      if (!razorpayOrderId || !Number.isFinite(amount) || amount <= 0) {
         showToast("Failed to initiate payment", "error");
-        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        try {
+          await cancelOrderWithPayload(orderId, "Payment initialization failed", "Razorpay order response missing required fields");
+        } catch (cancelErr) {
+          showToast(cancelErr?.response?.data?.message || "Failed to cancel order after payment initiation failure", "error");
+        }
         setPlacingOrder(false);
         return;
       }
@@ -380,7 +481,11 @@ export default function RetailerBag() {
       const sdkLoaded = await loadRazorpaySdk();
       if (!sdkLoaded || !window?.Razorpay) {
         showToast("Razorpay SDK not loaded", "error");
-        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        try {
+          await cancelOrderWithPayload(orderId, "Payment SDK unavailable", "Razorpay checkout script failed to load");
+        } catch (cancelErr) {
+          showToast(cancelErr?.response?.data?.message || "Failed to cancel order after SDK error", "error");
+        }
         setPlacingOrder(false);
         return;
       }
@@ -388,7 +493,11 @@ export default function RetailerBag() {
       const keyId = await fetchRazorpayKey();
       if (!keyId) {
         showToast("Razorpay key is missing", "error");
-        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        try {
+          await cancelOrderWithPayload(orderId, "Payment key missing", "Razorpay keyId was not returned by API");
+        } catch (cancelErr) {
+          showToast(cancelErr?.response?.data?.message || "Failed to cancel order after key fetch error", "error");
+        }
         setPlacingOrder(false);
         return;
       }
@@ -427,6 +536,11 @@ export default function RetailerBag() {
             } catch { /* ignore */ }
             navigate(`/orders/success?orderId=${orderId}`);
           } catch (verifyError) {
+            try {
+              await cancelOrderWithPayload(orderId, "Payment verification failed", verifyError?.response?.data?.message || "Verification callback failed");
+            } catch (cancelErr) {
+              showToast(cancelErr?.response?.data?.message || "Failed to cancel order after payment verification failure", "error");
+            }
             if (!navigator.onLine || verifyError?.code === "ERR_NETWORK") {
               showToast("Network error during payment verification. Please contact support.", "error");
             } else {
@@ -440,9 +554,9 @@ export default function RetailerBag() {
           ondismiss: async () => {
             // User closed Razorpay without paying → cancel the unpaid order
             try {
-              await api.post(`/orders/${orderId}/cancel`);
-            } catch {
-              // If cancel fails, backend should auto-expire unpaid orders anyway
+              await cancelOrderWithPayload(orderId, "Payment cancelled by user", "Razorpay checkout modal dismissed");
+            } catch (cancelErr) {
+              showToast(cancelErr?.response?.data?.message || "Failed to cancel order after payment dismissal", "error");
             }
             try {
               sessionStorage.removeItem(`pending-order`);
@@ -462,7 +576,11 @@ export default function RetailerBag() {
     } catch (error) {
       // If order was created but something else failed, cancel it
       if (orderId) {
-        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+        try {
+          await cancelOrderWithPayload(orderId, "Checkout failed", error?.response?.data?.message || "Unexpected checkout exception");
+        } catch (cancelErr) {
+          showToast(cancelErr?.response?.data?.message || "Failed to cancel order after checkout failure", "error");
+        }
       }
       if (!navigator.onLine || error?.code === "ERR_NETWORK" || error?.message === "Network Error") {
         showToast("No internet connection. Please check your network and try again.", "error");
@@ -500,7 +618,7 @@ export default function RetailerBag() {
           ADDRESS
         </button>
         <span className="divider"></span>
-        <button type="button" className="bag-step" onClick={() => {}}>
+        <button type="button" className="bag-step" onClick={handlePaymentStepClick}>
           PAYMENT
         </button>
       </div>
@@ -783,7 +901,7 @@ export default function RetailerBag() {
             <button
               type="button"
               className="bag-primary"
-              disabled={placingOrder}
+              disabled={placingOrder || (isSummaryStep && !hasValidSelectedAddress)}
               onClick={() => {
                 if (!isSummaryStep) {
                   if (selectedIds.size === 0) {
@@ -824,12 +942,18 @@ export default function RetailerBag() {
                   )}
                   {!addressLoading && !addressError && addressList.length > 0 &&
                     addressList.map((item) => (
-                      <label key={item.id} className={`address-card ${selectedAddressId === item.id ? "active" : ""}`}>
+                      <label
+                        key={item.id}
+                        className={`address-card ${idsEqual(selectedAddressId, item.id) ? "active" : ""}`}
+                      >
                         <input
                           type="radio"
                           name="address"
-                          checked={selectedAddressId === item.id}
-                          onChange={() => setSelectedAddressId(item.id)}
+                          checked={idsEqual(selectedAddressId, item.id)}
+                          onChange={() => {
+                            setSelectedAddressId(item.id);
+                            setAddress(item);
+                          }}
                         />
                         <div className="address-card-body">
                           <div className="address-card-row">
@@ -848,7 +972,7 @@ export default function RetailerBag() {
                             {item.pincode ? ` - ${item.pincode}` : ""}
                             {item.landmark ? `, ${item.landmark}` : ""}
                           </div>
-                          {selectedAddressId === item.id && (
+                          {idsEqual(selectedAddressId, item.id) && (
                             <div className="address-card-actions">
                               <button type="button" className="address-primary" onClick={handleDeliverHere}>
                                 DELIVER HERE

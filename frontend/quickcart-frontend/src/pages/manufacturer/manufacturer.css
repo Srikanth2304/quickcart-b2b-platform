@@ -1,0 +1,44 @@
+.mf-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.mf-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mf-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #fff;
+  padding: 14px;
+}
+
+.mf-card p {
+  margin: 0;
+  color: #64748b;
+}
+
+.mf-card h3 {
+  margin: 8px 0 0;
+  font-size: 28px;
+}
+
+.mf-form-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mf-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 900px) {
+  .mf-stats,
+  .mf-form-grid {
+    grid-template-columns: 1fr;
+  }
+}

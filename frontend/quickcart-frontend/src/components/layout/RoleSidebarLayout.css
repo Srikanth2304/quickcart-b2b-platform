@@ -1,0 +1,97 @@
+.role-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 250px 1fr;
+  background: #f4f6fb;
+}
+
+.role-sidebar {
+  background: linear-gradient(180deg, #1e3a8a, #0f172a);
+  color: #e5e7eb;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.role-brand {
+  font-size: 22px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.role-tag {
+  display: inline-block;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  font-weight: 700;
+  color: #bfdbfe;
+}
+
+.role-nav {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.role-nav-item {
+  text-decoration: none;
+  color: #dbeafe;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  padding: 9px 10px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.role-nav-item.active,
+.role-nav-item:hover {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.role-logout {
+  margin-top: auto;
+  border: 0;
+  border-radius: 10px;
+  background: #dc2626;
+  color: #ffffff;
+  padding: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.role-content {
+  min-width: 0;
+  padding: 20px;
+}
+
+.role-header {
+  margin-bottom: 12px;
+}
+
+.role-header h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 28px;
+}
+
+.role-body {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 16px;
+}
+
+@media (max-width: 920px) {
+  .role-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .role-sidebar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+}

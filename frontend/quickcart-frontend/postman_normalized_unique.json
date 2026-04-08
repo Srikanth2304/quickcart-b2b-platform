@@ -1,0 +1,291 @@
+[
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+    "name": "Step 01 - Step 1 - Login SUPER_ADMIN",
+    "method": "POST",
+    "endpoint": "",
+    "query": [],
+    "requestBodyShape": [
+      "email",
+      "password"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+    "name": "Step 08 - Step 8 - Get Pending Users",
+    "method": "GET",
+    "endpoint": "",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+    "name": "Step 09 - Step 9 - Approve MANUFACTURER",
+    "method": "PATCH",
+    "endpoint": "",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+    "name": "Step 07 - Update Variant",
+    "method": "PATCH",
+    "endpoint": "/variants/{variantId}",
+    "query": [],
+    "requestBodyShape": [
+      "variantName",
+      "variantValue",
+      "price",
+      "stock"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 05 - Create Shipment (Manufacturer)",
+    "method": "POST",
+    "endpoint": "/shipments",
+    "query": [],
+    "requestBodyShape": [
+      "orderId",
+      "trackingNumber",
+      "carrierName",
+      "trackingUrl",
+      "estimatedDeliveryDate"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 06 - Update Shipment Status - IN_TRANSIT",
+    "method": "PATCH",
+    "endpoint": "/shipments/{shipmentId}/status",
+    "query": [],
+    "requestBodyShape": [
+      "status"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 09 - Get Shipment by Order (Retailer)",
+    "method": "GET",
+    "endpoint": "/shipments/{orderId}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 01 - Request Return (Retailer)",
+    "method": "POST",
+    "endpoint": "/returns",
+    "query": [],
+    "requestBodyShape": [
+      "orderId",
+      "orderItemId",
+      "returnedQuantity",
+      "condition",
+      "reason"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 02 - Approve Return (Manufacturer)",
+    "method": "PATCH",
+    "endpoint": "/returns/{returnId}/approve",
+    "query": [],
+    "requestBodyShape": [
+      "note"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 03 - Receive Return (Manufacturer)",
+    "method": "PATCH",
+    "endpoint": "/returns/{returnId}/receive",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 04 - Inspect Return (Manufacturer)",
+    "method": "PATCH",
+    "endpoint": "/returns/{returnId}/inspect",
+    "query": [],
+    "requestBodyShape": [
+      "inspectionStatus"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 05 - Complete Return (Manufacturer)",
+    "method": "PATCH",
+    "endpoint": "/returns/{returnId}/complete",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+    "name": "Step 06 - Get Return By Id (Retailer)",
+    "method": "GET",
+    "endpoint": "/returns/{returnId}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 01 - Reserve Cart Item",
+    "method": "POST",
+    "endpoint": "/cart/reserve",
+    "query": [],
+    "requestBodyShape": [
+      "productId",
+      "variantId",
+      "quantity"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 02 - Get Active Reservations",
+    "method": "GET",
+    "endpoint": "/cart/reservations",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 03 - Cancel Reservation",
+    "method": "DELETE",
+    "endpoint": "/cart/reserve/{reservationId}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 04 - Create Inventory Batch",
+    "method": "POST",
+    "endpoint": "/inventory/batches",
+    "query": [],
+    "requestBodyShape": [
+      "productId",
+      "variantId",
+      "batchCode",
+      "quantity",
+      "expiryDate",
+      "supplierName"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 05 - List Inventory Batches",
+    "method": "GET",
+    "endpoint": "/inventory/batches",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 06 - Get Inventory Batch By Id",
+    "method": "GET",
+    "endpoint": "/inventory/batches/{batchId}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 07 - Update Inventory Batch",
+    "method": "PATCH",
+    "endpoint": "/inventory/batches/{batchId}",
+    "query": [],
+    "requestBodyShape": [
+      "remainingQuantity",
+      "supplierName",
+      "isActive"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Admin APIs",
+    "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+    "name": "Step 08 - Get Low Stock (Catalog Manager)",
+    "method": "GET",
+    "endpoint": "/inventory/low-stock",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Category APIs",
+    "folder": "CATEGORY MANAGEMENT",
+    "name": "Update Category",
+    "method": "PUT",
+    "endpoint": "",
+    "query": [],
+    "requestBodyShape": [
+      "name",
+      "slug",
+      "parentId",
+      "displayOrder",
+      "isActive"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Address APIs",
+    "folder": "ADDRESS MANAGEMENT",
+    "name": "Delete Address",
+    "method": "DELETE",
+    "endpoint": "",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Return APIs",
+    "folder": "RETURN MANAGEMENT",
+    "name": "Reject Return (Manufacturer)",
+    "method": "PATCH",
+    "endpoint": "/returns/{returnId}/reject",
+    "query": [],
+    "requestBodyShape": [
+      "note"
+    ],
+    "responseShape": []
+  }
+]

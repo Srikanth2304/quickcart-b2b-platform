@@ -14,6 +14,12 @@ function formatCurrency(value) {
   return Number(value).toLocaleString();
 }
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
 export default function OrderSuccess() {
   const navigate = useNavigate();
   const query = useQuery();
@@ -56,7 +62,7 @@ export default function OrderSuccess() {
           },
         });
         if (!isMounted) return;
-        setOrder(response?.data || null);
+        setOrder(unwrapApiData(response?.data) || null);
       } catch (err) {
         if (!isMounted) return;
         setError("Failed to load order details.");

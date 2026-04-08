@@ -1,0 +1,359 @@
+[
+  {
+    "file": "src/auth/AuthContext.jsx",
+    "line": 114,
+    "method": "POST",
+    "endpoint": "/auth/login",
+    "code": "const res = await api.post(\"/auth/login\", { email, password });"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 150,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 162,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "code": "const pRes = await api.get(`/products/${item.productId}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 182,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 211,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 216,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 235,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/refund/${action}",
+    "code": "await api.post(`/orders/${orderId}/refund/${action}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 237,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 137,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "code": "const res = await api.get(\"/orders/summary\");"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 174,
+    "method": "GET",
+    "endpoint": "/orders",
+    "code": "const res = await api.get(\"/orders\", { params });"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 199,
+    "method": "GET",
+    "endpoint": "/orders/${o.id}/refund",
+    "code": "const rRes = await api.get(`/orders/${o.id}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 224,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/refund/${action}",
+    "code": "await api.post(`/orders/${orderId}/refund/${action}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 227,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 260,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 271,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 56,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 78,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "code": "const pRes = await api.get(`/products/${item.productId}`);"
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 112,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "await api.post(`/orders/${orderId}/cancel`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 117,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const res = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 137,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 149,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "code": "const pRes = await api.get(`/products/${item.productId}`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 173,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}/reviews/my",
+    "code": "const rRes = await api.get(`/products/${item.productId}/reviews/my`, {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 197,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const refundRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 242,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const res = await api.get(`/orders/${orderId}/refund`, {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 275,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "await api.post(`/orders/${orderId}/cancel`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 278,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const res = await api.get(`/orders/${orderId}`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 287,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "code": "const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 309,
+    "method": "POST",
+    "endpoint": "/products/${productId}/reviews",
+    "code": "await api.post(`/products/${productId}/reviews`, {"
+  },
+  {
+    "file": "src/pages/OrderSuccess.jsx",
+    "line": 53,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "code": "const response = await api.get(`/orders/${orderId}`, {"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 78,
+    "method": "GET",
+    "endpoint": "/addresses",
+    "code": "const response = await api.get(\"/addresses\");"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 148,
+    "method": "PATCH",
+    "endpoint": "/addresses/${editingAddressId}",
+    "code": "await api.patch(`/addresses/${editingAddressId}`, payload);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 164,
+    "method": "POST",
+    "endpoint": "/addresses",
+    "code": "await api.post(\"/addresses\", payload);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 179,
+    "method": "PUT",
+    "endpoint": "/addresses/${id}/default",
+    "code": "await api.put(`/addresses/${id}/default`);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 206,
+    "method": "DELETE",
+    "endpoint": "/addresses/${id}",
+    "code": "await api.delete(`/addresses/${id}`);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 300,
+    "method": "GET",
+    "endpoint": "/payments/razorpay/key",
+    "code": "const response = await api.get(\"/payments/razorpay/key\");"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 326,
+    "method": "POST",
+    "endpoint": "/orders",
+    "code": "const orderResponse = await api.post(\"/orders\", payload);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 349,
+    "method": "POST",
+    "endpoint": "/payments/razorpay/order",
+    "code": "const razorpayResponse = await api.post(\"/payments/razorpay/order\", { orderId });"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 356,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 383,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 391,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 410,
+    "method": "POST",
+    "endpoint": "/payments/razorpay/verify",
+    "code": "await api.post(\"/payments/razorpay/verify\", {"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 443,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "await api.post(`/orders/${orderId}/cancel`);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 465,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "code": "try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 144,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "code": "const res = await api.get(\"/orders/summary\");"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 182,
+    "method": "GET",
+    "endpoint": "/orders",
+    "code": "const res = await api.get(\"/orders\", { params });"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 207,
+    "method": "GET",
+    "endpoint": "/products/${pid}",
+    "code": "const pRes = await api.get(`/products/${pid}`);"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 236,
+    "method": "GET",
+    "endpoint": "/orders/${o.id}/refund",
+    "code": "const rRes = await api.get(`/orders/${o.id}/refund`);"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 275,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "code": "const res = await api.get(\"/orders/summary\");"
+  },
+  {
+    "file": "src/pages/RetailerProductDetails.jsx",
+    "line": 59,
+    "method": "GET",
+    "endpoint": "/products/${id}",
+    "code": "const response = await api.get(`/products/${id}`);"
+  },
+  {
+    "file": "src/pages/RetailerProducts.jsx",
+    "line": 164,
+    "method": "GET",
+    "endpoint": "/products",
+    "code": "const response = await api.get(\"/products\", { params });"
+  },
+  {
+    "file": "src/pages/RetailerProducts.jsx",
+    "line": 290,
+    "method": "GET",
+    "endpoint": "/products/facets",
+    "code": "const response = await api.get(\"/products/facets\", { params });"
+  }
+]

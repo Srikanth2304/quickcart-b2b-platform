@@ -107,9 +107,25 @@ export default function OrderCancel() {
   };
 
   const handleSubmitCancellation = async () => {
+    if (!reason) {
+      showToast("Please select a cancellation reason", "info");
+      return;
+    }
+
+    const payload = {
+      reason,
+      comments: comments?.trim() || "",
+      refundMode: refundMode || "ORIGINAL",
+    };
+
     setSubmitting(true);
     try {
-      await api.post(`/orders/${orderId}/cancel`);
+      await api.post(`/orders/${orderId}/cancel`, payload);
+      try {
+        await api.get(`/orders/${orderId}`);
+      } catch {
+        // Ignore refresh failure and continue navigation to details page
+      }
       showToast("Order cancelled successfully", "success");
       navigate(`/orders/${orderId}`, { replace: true });
     } catch (error) {

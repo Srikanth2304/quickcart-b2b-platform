@@ -1,0 +1,202 @@
+<svg width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+    <defs>
+        <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#001f5c"/>
+            <stop offset="25%" stop-color="#1a0066"/>
+            <stop offset="50%" stop-color="#3b0066"/>
+            <stop offset="75%" stop-color="#6b004a"/>
+            <stop offset="100%" stop-color="#a0004f"/>
+        </linearGradient>
+
+        <linearGradient id="fillCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00c8ff" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#0055ff" stop-opacity="0.1"/>
+        </linearGradient>
+        <linearGradient id="fillPink" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff2d9a" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#b14cff" stop-opacity="0.1"/>
+        </linearGradient>
+        <linearGradient id="fillPurple" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#b14cff" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#6b004a" stop-opacity="0.05"/>
+        </linearGradient>
+
+        <linearGradient id="cyanLine" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#00c8ff"/>
+            <stop offset="100%" stop-color="#0055ff"/>
+        </linearGradient>
+        <linearGradient id="pinkLine" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#ff2d9a"/>
+            <stop offset="100%" stop-color="#b14cff"/>
+        </linearGradient>
+
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+        
+        <filter id="strongGlow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="15" result="blur"/>
+            <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+        </filter>
+    </defs>
+
+    <rect width="1920" height="1080" rx="20" ry="20" fill="url(#bgGradient)"/>
+
+    <circle cx="100" cy="150" r="300" fill="#00c8ff" opacity="0.15" filter="url(#strongGlow)"/>
+    <circle cx="1750" cy="150" r="350" fill="#ff2d9a" opacity="0.12" filter="url(#strongGlow)"/>
+    <circle cx="250" cy="900" r="250" fill="#b14cff" opacity="0.15" filter="url(#strongGlow)"/>
+
+    <g stroke="#b14cff" stroke-width="0.8" opacity="0.2" fill="none">
+        <path d="M 350,280 L 550,200 L 800,250 L 1050,150 L 1300,200 L 1550,120"/>
+        <path d="M 550,200 L 650,450 L 850,350 L 1050,150"/>
+        <path d="M 800,250 L 950,500 L 1150,450 L 1300,200"/>
+        <path d="M 400,900 L 550,750 L 800,850 L 1100,700 L 1400,700"/>
+        <path d="M 650,450 L 550,750"/>
+        <path d="M 950,500 L 800,850"/>
+        <path d="M 1150,450 L 1100,700"/>
+        <path d="M 1050,150 L 1400,400 L 1650,300"/>
+        <path d="M 1100,700 L 1480,850"/>
+        <path d="M 320,700 L 480,580 L 650,450"/>
+    </g>
+
+    <g fill="#ffffff" opacity="0.4">
+        <circle cx="550" cy="200" r="1.5"/><circle cx="800" cy="250" r="1.5"/><circle cx="1050" cy="150" r="1.5"/><circle cx="1300" cy="200" r="1.5"/>
+        <circle cx="650" cy="450" r="1.5"/><circle cx="850" cy="350" r="1.5"/><circle cx="950" cy="500" r="1.5"/><circle cx="1150" cy="450" r="1.5"/><circle cx="1400" cy="400" r="1.5"/>
+        <circle cx="550" cy="750" r="1.5"/><circle cx="800" cy="850" r="1.5"/><circle cx="1100" cy="700" r="1.5"/>
+        <circle cx="480" cy="580" r="1.5"/>
+    </g>
+
+    <g>
+        <polygon points="0,0 250,150 150,250" fill="url(#fillCyan)"/>
+        <polygon points="0,0 100,80 250,150" fill="url(#fillCyan)"/>
+        <polygon points="100,80 150,250 60,300" fill="url(#fillCyan)"/>
+        <polygon points="40,300 120,400 80,450" fill="url(#fillCyan)"/>
+        <polygon points="150,250 250,150 350,280" fill="url(#fillCyan)" opacity="0.6"/>
+
+        <polygon points="0,500 150,480 80,650" fill="url(#fillPurple)"/>
+        <polygon points="150,480 220,600 80,650" fill="url(#fillPurple)"/>
+        <polygon points="0,500 80,650 0,700" fill="url(#fillPurple)" opacity="0.6"/>
+
+        <polygon points="120,780 320,700 400,900" fill="url(#fillPink)"/>
+        <polygon points="120,780 400,900 180,950" fill="url(#fillPink)"/>
+        <polygon points="180,950 400,900 280,1080" fill="url(#fillPink)"/>
+        <polygon points="120,780 180,950 50,1000" fill="url(#fillPurple)"/>
+
+        <polygon points="1550,120 1750,80 1650,300" fill="url(#fillPink)"/>
+        <polygon points="1750,80 1920,150 1880,260" fill="url(#fillPink)"/>
+        <polygon points="1750,80 1650,300 1880,260" fill="url(#fillPink)"/>
+        <polygon points="1650,300 1880,260 1780,450" fill="url(#fillPink)"/>
+        <polygon points="1880,260 1920,380 1780,450" fill="url(#fillPink)"/>
+        <polygon points="1300,200 1400,150 1350,280" fill="url(#fillPurple)"/>
+        <polygon points="1500,400 1650,300 1620,520" fill="url(#fillPurple)"/>
+
+        <polygon points="1400,700 1600,680 1480,850" fill="url(#fillPurple)"/>
+        <polygon points="1600,680 1700,820 1480,850" fill="url(#fillPink)"/>
+        <polygon points="1600,680 1920,800 1700,820" fill="url(#fillPurple)"/>
+        <polygon points="1480,850 1700,820 1550,1000" fill="url(#fillPink)"/>
+        <polygon points="1700,820 1800,950 1550,1000" fill="url(#fillPurple)"/>
+        <polygon points="1700,820 1920,800 1920,1000" fill="url(#fillPurple)" opacity="0.5"/>
+    </g>
+
+    <g stroke="url(#cyanLine)" stroke-width="1.2" opacity="0.6" fill="none">
+        <path d="M 0,0 L 250,150 L 150,250 Z"/>
+        <path d="M 0,0 L 100,80 L 250,150 Z"/>
+        <path d="M 100,80 L 150,250 L 60,300 Z"/>
+        <path d="M 40,300 L 120,400 L 80,450 Z"/>
+        <path d="M 150,250 L 350,280 Z"/>
+        <path d="M 250,150 L 350,280"/>
+    </g>
+
+    <g stroke="#b14cff" stroke-width="1.2" opacity="0.6" fill="none">
+        <path d="M 0,500 L 150,480 L 80,650 Z"/>
+        <path d="M 150,480 L 220,600 L 80,650 Z"/>
+        <path d="M 0,500 L 0,700 L 80,650 Z"/>
+    </g>
+
+    <g stroke="url(#pinkLine)" stroke-width="1.2" opacity="0.6" fill="none">
+        <path d="M 120,780 L 320,700 L 400,900 Z"/>
+        <path d="M 120,780 L 400,900 L 180,950 Z"/>
+        <path d="M 180,950 L 400,900 L 280,1080 Z"/>
+        <path d="M 120,780 L 50,1000 L 180,950 Z"/>
+    </g>
+
+    <g stroke="url(#pinkLine)" stroke-width="1.5" opacity="0.75" fill="none">
+        <path d="M 1550,120 L 1750,80 L 1650,300 Z"/>
+        <path d="M 1750,80 L 1920,150 L 1880,260 Z"/>
+        <path d="M 1750,80 L 1650,300 L 1880,260 Z"/>
+        <path d="M 1650,300 L 1880,260 L 1780,450 Z"/>
+        <path d="M 1880,260 L 1920,380 L 1780,450 Z"/>
+        <path d="M 1300,200 L 1400,150 L 1350,280 Z"/>
+        <path d="M 1500,400 L 1650,300 L 1620,520 Z"/>
+    </g>
+
+    <g stroke="#b14cff" stroke-width="1.2" opacity="0.6" fill="none">
+        <path d="M 1400,700 L 1600,680 L 1480,850 Z"/>
+        <path d="M 1600,680 L 1700,820 L 1480,850 Z"/>
+        <path d="M 1600,680 L 1920,800 L 1700,820 Z"/>
+        <path d="M 1480,850 L 1700,820 L 1550,1000 Z"/>
+        <path d="M 1700,820 L 1800,950 L 1550,1000 Z"/>
+        <path d="M 1700,820 L 1920,1000 Z"/>
+    </g>
+
+    <g fill="#ffffff" filter="url(#glow)">
+        <circle cx="100" cy="80" r="3.5" fill="#00c8ff"/>
+        <circle cx="250" cy="150" r="4" fill="#00c8ff"/>
+        <circle cx="150" cy="250" r="3" fill="#00c8ff"/>
+        <circle cx="60" cy="300" r="3" fill="#00c8ff"/>
+        <circle cx="120" cy="400" r="2.5" fill="#00c8ff"/>
+        <circle cx="80" cy="450" r="2.5" fill="#00c8ff"/>
+        <circle cx="350" cy="280" r="2.5" fill="#00c8ff"/>
+        
+        <circle cx="150" cy="480" r="2" fill="#b14cff"/>
+        <circle cx="220" cy="600" r="2" fill="#b14cff"/>
+        <circle cx="80" cy="650" r="2" fill="#b14cff"/>
+
+        <circle cx="120" cy="780" r="3.5" fill="#ff2d9a"/>
+        <circle cx="320" cy="700" r="3" fill="#ff2d9a"/>
+        <circle cx="400" cy="900" r="4" fill="#ff2d9a"/>
+        <circle cx="180" cy="950" r="3.5" fill="#ff2d9a"/>
+        <circle cx="280" cy="1080" r="3" fill="#ff2d9a"/>
+
+        <circle cx="1550" cy="120" r="3.5" fill="#ff2d9a"/>
+        <circle cx="1750" cy="80" r="4" fill="#ff2d9a"/>
+        <circle cx="1650" cy="300" r="4" fill="#ff2d9a"/>
+        <circle cx="1880" cy="260" r="3.5" fill="#ff2d9a"/>
+        <circle cx="1780" cy="450" r="3" fill="#ff2d9a"/>
+        <circle cx="1300" cy="200" r="2.5" fill="#b14cff"/>
+        <circle cx="1400" cy="150" r="2.5" fill="#b14cff"/>
+        <circle cx="1350" cy="280" r="2.5" fill="#b14cff"/>
+        <circle cx="1500" cy="400" r="2.5" fill="#b14cff"/>
+        <circle cx="1620" cy="520" r="2.5" fill="#b14cff"/>
+
+        <circle cx="1400" cy="700" r="2.5" fill="#b14cff"/>
+        <circle cx="1600" cy="680" r="3" fill="#b14cff"/>
+        <circle cx="1480" cy="850" r="3" fill="#b14cff"/>
+        <circle cx="1700" cy="820" r="3" fill="#ff2d9a"/>
+        <circle cx="1550" cy="1000" r="3" fill="#ff2d9a"/>
+        <circle cx="1800" cy="950" r="2.5" fill="#b14cff"/>
+    </g>
+
+    <g fill="#ffffff">
+        <circle cx="100" cy="80" r="1.5"/>
+        <circle cx="250" cy="150" r="2"/>
+        <circle cx="150" cy="250" r="1.5"/>
+        <circle cx="400" cy="900" r="2"/>
+        <circle cx="120" cy="780" r="1.5"/>
+        <circle cx="180" cy="950" r="1.5"/>
+        <circle cx="1750" cy="80" r="2"/>
+        <circle cx="1650" cy="300" r="2"/>
+        <circle cx="1880" cy="260" r="1.5"/>
+        <circle cx="1550" cy="120" r="1.5"/>
+        <circle cx="1700" cy="820" r="1.5"/>
+        <circle cx="1600" cy="680" r="1.5"/>
+        <circle cx="1480" cy="850" r="1.5"/>
+    </g>
+</svg>

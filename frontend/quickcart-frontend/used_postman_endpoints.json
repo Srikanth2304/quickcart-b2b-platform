@@ -1,0 +1,264 @@
+[
+  {
+    "domain": "Auth APIs",
+    "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+    "name": "Step 01 - Step 1 - Login SUPER_ADMIN",
+    "method": "POST",
+    "endpoint": "/auth/login",
+    "rawUrl": "{{baseUrl}}/auth/login",
+    "query": [],
+    "requestBodyShape": [
+      "email",
+      "password"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "ORDER MANAGEMENT",
+    "name": "Get Order By Id",
+    "method": "GET",
+    "endpoint": "/orders/{{orderId}}",
+    "rawUrl": "{{baseUrl}}/orders/{{orderId}}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "PRODUCT MANAGEMENT",
+    "name": "Get Product By Id",
+    "method": "GET",
+    "endpoint": "/products/{{productId}}",
+    "rawUrl": "{{baseUrl}}/products/{{productId}}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 12 - Get Refund For Order",
+    "method": "GET",
+    "endpoint": "/orders/{{orderId}}/refund",
+    "rawUrl": "{{baseUrl}}/orders/{{orderId}}/refund",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "ORDER MANAGEMENT",
+    "name": "Get Order Summary",
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "rawUrl": "{{baseUrl}}/orders/summary",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "ORDER MANAGEMENT",
+    "name": "Get Orders",
+    "method": "GET",
+    "endpoint": "/orders",
+    "rawUrl": "{{baseUrl}}/orders?page=0&size=10",
+    "query": [
+      {
+        "key": "page",
+        "value": "0"
+      },
+      {
+        "key": "size",
+        "value": "10"
+      }
+    ],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 04 - Cancellation & Refund Branches",
+    "name": "Step 04 - Cancel Order",
+    "method": "POST",
+    "endpoint": "/orders/{{orderId}}/cancel",
+    "rawUrl": "{{baseUrl}}/orders/{{orderId}}/cancel",
+    "query": [],
+    "requestBodyShape": [
+      "reason"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "REVIEW MANAGEMENT",
+    "name": "Get My Review (/my)",
+    "method": "GET",
+    "endpoint": "/products/{{reviewProductId}}/reviews/my",
+    "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews/my",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "REVIEW MANAGEMENT",
+    "name": "Create/Update Review (POST alias)",
+    "method": "POST",
+    "endpoint": "/products/{{reviewProductId}}/reviews",
+    "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews",
+    "query": [],
+    "requestBodyShape": [
+      "rating",
+      "comment"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Address APIs",
+    "folder": "ADDRESS MANAGEMENT",
+    "name": "Get Addresses",
+    "method": "GET",
+    "endpoint": "/addresses",
+    "rawUrl": "{{baseUrl}}/addresses",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Address APIs",
+    "folder": "ADDRESS MANAGEMENT",
+    "name": "Patch Address",
+    "method": "PATCH",
+    "endpoint": "/addresses/{{addressId}}",
+    "rawUrl": "{{baseUrl}}/addresses/{{addressId}}",
+    "query": [],
+    "requestBodyShape": [
+      "landmark"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+    "name": "Step 08 - Create Address",
+    "method": "POST",
+    "endpoint": "/addresses",
+    "rawUrl": "{{baseUrl}}/addresses",
+    "query": [],
+    "requestBodyShape": [
+      "name",
+      "phone",
+      "addressLine1",
+      "city",
+      "state",
+      "pincode",
+      "isDefault"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Address APIs",
+    "folder": "ADDRESS MANAGEMENT",
+    "name": "Set Default Address",
+    "method": "PUT",
+    "endpoint": "/addresses/{{addressId}}/default",
+    "rawUrl": "{{baseUrl}}/addresses/{{addressId}}/default",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Address APIs",
+    "folder": "ADDRESS MANAGEMENT",
+    "name": "Delete Address",
+    "method": "DELETE",
+    "endpoint": "/addresses/{{addressId}}",
+    "rawUrl": "{{baseUrl}}/addresses/{{addressId}}",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Payment APIs",
+    "folder": "PAYMENT MANAGEMENT",
+    "name": "Get Razorpay Key",
+    "method": "GET",
+    "endpoint": "/payments/razorpay/key",
+    "rawUrl": "{{baseUrl}}/payments/razorpay/key",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 01 - Place Order",
+    "method": "POST",
+    "endpoint": "/orders",
+    "rawUrl": "{{baseUrl}}/orders",
+    "query": [],
+    "requestBodyShape": [
+      "<non-json-or-template-body>"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 02 - Create Razorpay Order",
+    "method": "POST",
+    "endpoint": "/payments/razorpay/order",
+    "rawUrl": "{{baseUrl}}/payments/razorpay/order",
+    "query": [],
+    "requestBodyShape": [
+      "<non-json-or-template-body>"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Order APIs",
+    "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+    "name": "Step 03 - Verify Razorpay Payment",
+    "method": "POST",
+    "endpoint": "/payments/razorpay/verify",
+    "rawUrl": "{{baseUrl}}/payments/razorpay/verify",
+    "query": [],
+    "requestBodyShape": [
+      "<non-json-or-template-body>"
+    ],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "PRODUCT MANAGEMENT",
+    "name": "Get Products",
+    "method": "GET",
+    "endpoint": "/products",
+    "rawUrl": "{{baseUrl}}/products?page=0&size=10",
+    "query": [
+      {
+        "key": "page",
+        "value": "0"
+      },
+      {
+        "key": "size",
+        "value": "10"
+      }
+    ],
+    "requestBodyShape": [],
+    "responseShape": []
+  },
+  {
+    "domain": "Product APIs",
+    "folder": "PRODUCT MANAGEMENT",
+    "name": "Get Product Facets",
+    "method": "GET",
+    "endpoint": "/products/facets",
+    "rawUrl": "{{baseUrl}}/products/facets",
+    "query": [],
+    "requestBodyShape": [],
+    "responseShape": []
+  }
+]

@@ -5,6 +5,18 @@ import { showToast } from "../utils/notify";
 import Loader from "../components/Loader";
 import "./ManufacturerOrders.css";
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
+function normalizeOrderStatus(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "PAID") return "CONFIRMED";
+  return s;
+}
+
 function formatCurrency(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value)))
     return "-";
@@ -68,7 +80,7 @@ function isRefundPending(status) {
 
 /* Lifecycle actions a manufacturer can take per status */
 function getLifecycleActions(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s === "PAYMENT_PENDING") return ["cancel"];
   if (s === "CONFIRMED") return ["accept", "reject", "cancel"];
   if (s === "ACCEPTED") return ["ship", "cancel"];
@@ -136,11 +148,12 @@ export default function ManufacturerOrders() {
     try {
       const res = await api.get("/orders/summary");
       if (res?.data) {
+        const payload = unwrapApiData(res.data) || {};
         setSummary({
-          total: res.data.total ?? 0,
-          active: res.data.active ?? 0,
-          delivered: res.data.delivered ?? 0,
-          cancelled: res.data.cancelled ?? 0,
+          total: payload.total ?? 0,
+          active: payload.active ?? 0,
+          delivered: payload.delivered ?? 0,
+          cancelled: payload.cancelled ?? 0,
         });
       }
     } catch { /* summary fetch failed — counts stay 0 */ }
@@ -172,7 +185,7 @@ export default function ManufacturerOrders() {
       if (sort) params.sort = sort;
 
       const res = await api.get("/orders", { params });
-      const resData = res?.data || {};
+  const resData = unwrapApiData(res?.data) || {};
       const data = Array.isArray(resData) ? resData : resData.content || resData.orders || [];
       setOrders(data);
       setTotalPages(resData.totalPages || 1);
@@ -197,7 +210,7 @@ export default function ManufacturerOrders() {
             if (refundMap[o.id]) return; // already cached
             try {
               const rRes = await api.get(`/orders/${o.id}/refund`);
-              refundMap[o.id] = rRes?.data || null;
+              refundMap[o.id] = unwrapApiData(rRes?.data) || null;
             } catch {
               // no refund exists or fetch failed — ignore
             }
@@ -225,7 +238,7 @@ export default function ManufacturerOrders() {
       // Refetch refund data for this order
       try {
         const rRes = await api.get(`/orders/${orderId}/refund`);
-        setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));
+        setRefunds((prev) => ({ ...prev, [orderId]: unwrapApiData(rRes?.data) || null }));
       } catch (err) {
         if (err?.response?.status === 404) {
           // Refund record not found — clear it
@@ -254,12 +267,34 @@ export default function ManufacturerOrders() {
     try {
       const endpoint = LIFECYCLE_ENDPOINTS[action];
       if (!endpoint) return;
-      await api.post(endpoint(orderId));
+      if (action === "deliver") {
+        const orderRow = orders.find((o) => String(o?.id) === String(orderId));
+        const shipmentId =
+          orderRow?.shipment?.id ||
+          orderRow?.shipmentId ||
+          orderRow?.shipment?.shipmentId ||
+          null;
+        const payload = { status: "DELIVERED" };
+        console.log("=== Shipment Update Triggered ===");
+        console.log("Shipment ID:", shipmentId);
+        console.log("Payload:", payload);
+        console.log("API URL:", shipmentId ? `/shipments/${shipmentId}` : "N/A (shipmentId missing)");
+        if (!shipmentId) {
+          console.error("Shipment ID is missing — cannot update shipment");
+        }
+        console.log("Lifecycle API actually called:", endpoint(orderId));
+      }
+
+      const response = await api.post(endpoint(orderId));
+      if (action === "deliver") {
+        console.log("Shipment Update Response:", response?.data);
+      }
       // Re-fetch the single order to get updated status
       try {
         const res = await api.get(`/orders/${orderId}`);
-        if (res?.data) {
-          setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...res.data } : o)));
+        const orderPayload = unwrapApiData(res?.data);
+        if (orderPayload) {
+          setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...orderPayload } : o)));
         }
       } catch {
         // Fallback: refetch current page
@@ -269,7 +304,7 @@ export default function ManufacturerOrders() {
       if (action === "reject" || action === "cancel") {
         try {
           const rRes = await api.get(`/orders/${orderId}/refund`);
-          setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));
+          setRefunds((prev) => ({ ...prev, [orderId]: unwrapApiData(rRes?.data) || null }));
         } catch {
           // no refund record created yet — ignore
         }
@@ -288,7 +323,7 @@ export default function ManufacturerOrders() {
   const filteredOrders = orders;
 
   const getStatusStyle = (status) => {
-    const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+    const s = normalizeOrderStatus(status);
     if (s.includes("REJECT")) return STATUS_COLORS.REJECTED;
     if (s.includes("CANCEL")) return STATUS_COLORS.CANCELLED;
     if (s.includes("DELIVER") && !s.includes("OUT")) return STATUS_COLORS.DELIVERED;
@@ -383,7 +418,7 @@ export default function ManufacturerOrders() {
               const items = order.items || order.orderItems || [];
               const totalAmount = order.totalAmount || order.amount || 0;
               const statusStyle = getStatusStyle(order.status);
-              const orderStatusUpper = (order.status || "").toUpperCase().replace(/[\s-]/g, "_");
+              const orderStatusUpper = normalizeOrderStatus(order.status);
               const isCancelled = orderStatusUpper.includes("CANCEL");
               const isRejected = orderStatusUpper.includes("REJECT");
               const isCancelledOrRejected = isCancelled || isRejected;
@@ -511,9 +546,12 @@ export default function ManufacturerOrders() {
                               type="button"
                               className={`mo-lifecycle-btn ${cfg.className}`}
                               disabled={!!lifecycleInProgress}
-                              onClick={() =>
-                                setConfirmModal({ orderId: order.id, action, type: "lifecycle" })
-                              }
+                              onClick={() => {
+                                if (action === "deliver") {
+                                  console.log("Mark Delivered button clicked");
+                                }
+                                setConfirmModal({ orderId: order.id, action, type: "lifecycle" });
+                              }}
                             >
                               {isProcessing
                                 ? `${cfg.label.replace(/^(\w+)/, "$1ing")}…`

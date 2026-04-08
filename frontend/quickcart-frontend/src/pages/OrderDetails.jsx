@@ -11,13 +11,37 @@ function formatCurrency(value) {
   return Number(value).toLocaleString("en-IN");
 }
 
-const TRACKING_STEPS = [
-  { key: "PAYMENT_PENDING", label: "Order Placed" },
-  { key: "CONFIRMED", label: "Payment Confirmed" },
-  { key: "ACCEPTED", label: "Accepted by Seller" },
-  { key: "SHIPPED", label: "Shipped" },
-  { key: "DELIVERED", label: "Delivered" },
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
+const SHIPMENT_STEPS = ["CREATED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED"];
+
+const RETURN_CONDITIONS = ["GOOD", "DAMAGED", "OPEN_BOX"];
+
+const CANCEL_REASONS = [
+  "Changed my mind",
+  "Found a better price",
+  "Delivery is too late",
+  "Ordered by mistake",
+  "Other",
 ];
+
+const REFUND_MODES = ["ORIGINAL", "BANK_TRANSFER", "WALLET"];
+
+function normalizeOrderStatus(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "PAID") return "CONFIRMED";
+  return s;
+}
+
+function normalizePaymentStatus(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "SUCCESSFUL") return "SUCCESS";
+  return s;
+}
 
 function isRefundPending(status) {
   const s = (status || "").toUpperCase();
@@ -25,13 +49,77 @@ function isRefundPending(status) {
 }
 
 function getStepIndex(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s.includes("DELIVER") && !s.includes("OUT")) return 4;
   if (s.includes("OUT")) return 3;
   if (s.includes("SHIP")) return 3;
   if (s.includes("ACCEPT")) return 2;
   if (s.includes("CONFIRM")) return 1;
   return 0; // PAYMENT_PENDING or CREATED
+}
+
+function getOrderProgressFlags(status) {
+  const s = normalizeOrderStatus(status);
+  const delivered = s.includes("DELIVER") && !s.includes("OUT");
+  const outForDelivery = s.includes("OUT") || delivered;
+  const shipped = s.includes("SHIP") || outForDelivery;
+  const accepted = s.includes("ACCEPT") || shipped;
+  return { accepted, shipped, outForDelivery, delivered };
+}
+
+function buildOrderTimelineSteps({
+  isCodOrder,
+  paymentStatus,
+  status,
+  orderDate,
+  confirmedDate,
+  acceptedDate,
+  shippedDate,
+  outForDeliveryDate,
+  deliveryDate,
+  paymentCollectedDate,
+}) {
+  const payment = normalizePaymentStatus(paymentStatus);
+  const { accepted, shipped, outForDelivery, delivered } = getOrderProgressFlags(status);
+
+  const steps = isCodOrder
+    ? [
+        { key: "ORDER_PLACED", label: "Order Placed", done: true, sub: orderDate ? `Your order has been placed, ${formatDate(orderDate)}` : "" },
+        { key: "ACCEPTED", label: "Accepted by Seller", done: accepted, sub: acceptedDate ? `Seller accepted your order, ${formatDate(acceptedDate)}` : "" },
+        { key: "SHIPPED", label: "Shipped", done: shipped, sub: shippedDate ? `Shipped on ${formatDate(shippedDate)}` : "" },
+        { key: "OUT_FOR_DELIVERY", label: "Out for Delivery", done: outForDelivery, sub: outForDeliveryDate ? `Out for delivery on ${formatDate(outForDeliveryDate)}` : "" },
+        { key: "DELIVERED", label: "Delivered", done: delivered, sub: deliveryDate ? formatDate(deliveryDate) : "" },
+        { key: "PAYMENT_COLLECTED", label: "Payment Collected", done: payment === "COLLECTED", sub: paymentCollectedDate ? `Collected on ${formatDate(paymentCollectedDate)}` : "" },
+      ]
+    : [
+        { key: "ORDER_PLACED", label: "Order Placed", done: true, sub: orderDate ? `Your order has been placed, ${formatDate(orderDate)}` : "" },
+        ...(payment === "SUCCESS"
+          ? [{ key: "PAYMENT_CONFIRMED", label: "Payment Confirmed", done: true, sub: confirmedDate ? `Payment confirmed, ${formatDate(confirmedDate)}` : "" }]
+          : []),
+        { key: "ACCEPTED", label: "Accepted by Seller", done: accepted, sub: acceptedDate ? "Seller accepted your order" : "" },
+        { key: "SHIPPED", label: "Shipped", done: shipped, sub: shippedDate ? `Shipped on ${formatDate(shippedDate)}` : "" },
+        { key: "DELIVERED", label: "Delivered", done: delivered, sub: deliveryDate ? formatDate(deliveryDate) : "" },
+      ];
+
+  const firstPendingIndex = steps.findIndex((step) => !step.done);
+  const currentIndex = firstPendingIndex === -1 ? steps.length - 1 : firstPendingIndex;
+  return steps.map((step, index) => ({ ...step, current: index === currentIndex }));
+}
+
+function getPaymentStatusLabel(paymentStatus) {
+  const s = normalizePaymentStatus(paymentStatus);
+  if (s === "SUCCESS") return "Payment Confirmed";
+  if (s === "PENDING_COLLECTION") return "Pending Collection";
+  if (s === "COLLECTED") return "Payment Collected";
+  if (s === "REFUNDED") return "Refund Completed";
+  return s || "-";
+}
+
+function getShipmentStepIndex(status) {
+  const raw = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const normalized = raw === "SHIPPED" ? "IN_TRANSIT" : raw;
+  const idx = SHIPMENT_STEPS.findIndex((step) => step === normalized);
+  return idx >= 0 ? idx : -1;
 }
 
 function formatDate(dateStr) {
@@ -100,6 +188,24 @@ export default function OrderDetails() {
   const [showUpdatesModal, setShowUpdatesModal] = useState(false);
   const [refund, setRefund] = useState(null);
   const [refundLoading, setRefundLoading] = useState(false);
+  const [shipment, setShipment] = useState(null);
+  const [shipmentLoading, setShipmentLoading] = useState(false);
+  const [shipmentError, setShipmentError] = useState("");
+
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [returnItemId, setReturnItemId] = useState("");
+  const [returnedQuantity, setReturnedQuantity] = useState(1);
+  const [returnCondition, setReturnCondition] = useState("GOOD");
+  const [returnReason, setReturnReason] = useState("Damaged item");
+  const [returnSubmitting, setReturnSubmitting] = useState(false);
+  const [returnError, setReturnError] = useState("");
+  const [returnId, setReturnId] = useState("");
+  const [returnData, setReturnData] = useState(null);
+  const [returnTrackingLoading, setReturnTrackingLoading] = useState(false);
+
+  const [cancelReason, setCancelReason] = useState(CANCEL_REASONS[0]);
+  const [cancelComments, setCancelComments] = useState("");
+  const [cancelRefundMode, setCancelRefundMode] = useState("ORIGINAL");
 
   /* Review state */
   const [reviews, setReviews] = useState({});        // { productId: { rating, comment, submitted } }
@@ -115,7 +221,7 @@ export default function OrderDetails() {
     setRefundRefreshing(true);
     try {
       const res = await api.get(`/orders/${orderId}/refund`);
-      setRefund(res?.data || null);
+      setRefund(unwrapApiData(res?.data) || null);
     } catch {
       // no refund yet
     } finally {
@@ -136,7 +242,7 @@ export default function OrderDetails() {
       try {
         const res = await api.get(`/orders/${orderId}`);
         if (!isMounted) return;
-        const orderData = res?.data || null;
+        const orderData = unwrapApiData(res?.data) || null;
         setOrder(orderData);
 
         // Fetch product details for each item
@@ -147,7 +253,7 @@ export default function OrderDetails() {
             if (!item.productId) return;
             try {
               const pRes = await api.get(`/products/${item.productId}`);
-              const p = pRes?.data;
+              const p = unwrapApiData(pRes?.data) || {};
               imgMap[item.productId] = {
                 imageUrl: p?.imageUrl || p?.image || p?.thumbnail || "",
                 brand: p?.brand || "",
@@ -173,10 +279,11 @@ export default function OrderDetails() {
                 const rRes = await api.get(`/products/${item.productId}/reviews/my`, {
                   validateStatus: () => true, // never throw — we inspect status ourselves
                 });
-                if (rRes?.status === 200 && rRes?.data && rRes.data.rating) {
+                const reviewPayload = unwrapApiData(rRes?.data) || {};
+                if (rRes?.status === 200 && reviewPayload && reviewPayload.rating) {
                   revMap[item.productId] = {
-                    rating: rRes.data.rating,
-                    comment: rRes.data.comment || rRes.data.review || "",
+                    rating: reviewPayload.rating,
+                    comment: reviewPayload.comment || reviewPayload.review || "",
                     submitted: true,
                   };
                 }
@@ -195,7 +302,7 @@ export default function OrderDetails() {
           try {
             setRefundLoading(true);
             const refundRes = await api.get(`/orders/${orderId}/refund`);
-            if (isMounted) setRefund(refundRes?.data || null);
+            if (isMounted) setRefund(unwrapApiData(refundRes?.data) || null);
           } catch {
             // No refund exists or endpoint not available
             if (isMounted) setRefund(null);
@@ -215,6 +322,37 @@ export default function OrderDetails() {
       isMounted = false;
     };
   }, [orderId, navigate]);
+
+  useEffect(() => {
+    if (!orderId) return;
+    let isMounted = true;
+
+    const fetchShipment = async () => {
+      setShipmentLoading(true);
+      setShipmentError("");
+      try {
+        const res = await api.get(`/shipments/${orderId}`);
+        if (!isMounted) return;
+        setShipment(unwrapApiData(res?.data) || null);
+      } catch (err) {
+        if (!isMounted) return;
+        if (err?.response?.status === 404) {
+          setShipment(null);
+          setShipmentError("");
+        } else {
+          setShipment(null);
+          setShipmentError(err?.response?.data?.message || "Failed to load shipment details.");
+        }
+      } finally {
+        if (isMounted) setShipmentLoading(false);
+      }
+    };
+
+    fetchShipment();
+    return () => {
+      isMounted = false;
+    };
+  }, [orderId]);
 
   /* Auto-poll refund status when refund is in a non-final state */
   useEffect(() => {
@@ -242,7 +380,7 @@ export default function OrderDetails() {
         const res = await api.get(`/orders/${orderId}/refund`, {
           signal: controller.signal,
         });
-        const newRefund = res?.data || null;
+        const newRefund = unwrapApiData(res?.data) || null;
         errorCount = 0; // reset on success
         setRefund((prev) => {
           if (prev?.status !== newRefund?.status) return newRefund;
@@ -270,22 +408,39 @@ export default function OrderDetails() {
   }, [orderId, order?.status, refund?.status]);
 
   const handleCancelOrder = async () => {
+    const payload = {
+      reason: cancelReason,
+      comments: cancelComments,
+      refundMode: cancelRefundMode,
+    };
+
     setCancelling(true);
     try {
-      await api.post(`/orders/${orderId}/cancel`);
+      await api.post(`/api/orders/${orderId}/cancel`, payload);
       // Re-fetch the full order to get accurate status
       try {
         const res = await api.get(`/orders/${orderId}`);
-        setOrder(res?.data || null);
+        setOrder(unwrapApiData(res?.data) || null);
       } catch {
-        setOrder((prev) => (prev ? { ...prev, status: "CANCELLED" } : prev));
+        setOrder((prev) => {
+          if (!prev) return prev;
+          const nextPaymentStatus = (prev?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY"
+            ? prev?.paymentStatus
+            : "REFUNDED";
+          return { ...prev, status: "CANCELLED", paymentStatus: nextPaymentStatus };
+        });
       }
       setShowCancelModal(false);
-      showToast("Order cancelled successfully", "success");
+      showToast(
+        isCodOrder
+          ? "Order cancelled successfully."
+          : "Order cancelled successfully. Refund initiated.",
+        "success"
+      );
       // Fetch refund data (backend may auto-create refund on cancel)
       try {
         const rRes = await api.get(`/orders/${orderId}/refund`);
-        setRefund(rRes?.data || null);
+        setRefund(unwrapApiData(rRes?.data) || null);
       } catch {
         // refund not yet created — polling will pick it up
       }
@@ -293,7 +448,11 @@ export default function OrderDetails() {
       if (!navigator.onLine || err?.code === "ERR_NETWORK") {
         showToast("No internet connection. Please try again.", "error");
       } else {
-        showToast(err?.response?.data?.message || "Failed to cancel order. Please try again.", "error");
+        const apiMessage = err?.response?.data?.message || "";
+        const message = /shipp|deliver/i.test(apiMessage)
+          ? "Order cannot be cancelled after shipment."
+          : (apiMessage || "Failed to cancel order. Please try again.");
+        showToast(message, "error");
       }
     } finally {
       setCancelling(false);
@@ -345,19 +504,109 @@ export default function OrderDetails() {
     }));
   };
 
+  const handleOpenReturnForm = () => {
+    const orderItems = order?.items || order?.orderItems || [];
+    if (orderItems.length === 0) {
+      showToast("No order items available for return", "error");
+      return;
+    }
+    const firstItem = orderItems[0];
+    const firstItemId = String(firstItem?.orderItemId || firstItem?.id || "");
+    if (!firstItemId) {
+      showToast("Return is not available for this item", "error");
+      return;
+    }
+    setReturnItemId(firstItemId);
+    setReturnedQuantity(1);
+    setReturnCondition("GOOD");
+    setReturnReason("Damaged item");
+    setReturnError("");
+    setShowReturnForm(true);
+  };
+
+  const fetchReturnById = async (nextReturnId) => {
+    if (!nextReturnId) return;
+    setReturnTrackingLoading(true);
+    try {
+      const res = await api.get(`/returns/${nextReturnId}`);
+      setReturnData(unwrapApiData(res?.data) || null);
+    } catch (err) {
+      setReturnData(null);
+    } finally {
+      setReturnTrackingLoading(false);
+    }
+  };
+
+  const handleSubmitReturnRequest = async () => {
+    const orderItems = order?.items || order?.orderItems || [];
+    const selectedItem = orderItems.find((item) => String(item?.orderItemId || item?.id || "") === String(returnItemId));
+
+    if (!selectedItem) {
+      setReturnError("Please select a valid item.");
+      showToast("Please select a valid item", "error");
+      return;
+    }
+
+    const deliveredQty = Number(selectedItem?.deliveredQuantity ?? selectedItem?.quantity ?? 0);
+    const qty = Number(returnedQuantity);
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+      setReturnError("Returned quantity must be greater than 0.");
+      showToast("Returned quantity must be greater than 0", "error");
+      return;
+    }
+
+    if (!Number.isFinite(deliveredQty) || qty > deliveredQty) {
+      setReturnError("Returned quantity cannot exceed delivered quantity.");
+      showToast("Returned quantity cannot exceed delivered quantity", "error");
+      return;
+    }
+
+    setReturnSubmitting(true);
+    setReturnError("");
+    try {
+      const createReturnRes = await api.post("/returns", {
+        orderId,
+        orderItemId: selectedItem?.orderItemId || selectedItem?.id,
+        returnedQuantity: qty,
+        condition: returnCondition,
+        reason: returnReason,
+      });
+      const returnPayload = unwrapApiData(createReturnRes?.data) || {};
+      const createdReturnId = returnPayload?.id || returnPayload?.returnId || "";
+      if (createdReturnId) {
+        setReturnId(String(createdReturnId));
+        await fetchReturnById(createdReturnId);
+      }
+      showToast("Return request submitted", "success");
+      setShowReturnForm(false);
+    } catch (err) {
+      const msg = err?.response?.data?.message || "Failed to submit return request.";
+      setReturnError(msg);
+      showToast(msg, "error");
+    } finally {
+      setReturnSubmitting(false);
+    }
+  };
+
   if (!orderId) return null;
 
-  const status = order?.status || "";
+  const status = normalizeOrderStatus(order?.status || "");
   const activeStep = getStepIndex(status);
-  const isDelivered = activeStep >= 4;
-  const statusUpper = status.toUpperCase().replace(/[\s-]/g, "_");
+  const isDelivered = status.includes("DELIVER") && !status.includes("OUT");
+  const statusUpper = normalizeOrderStatus(status);
   const isCancelled = statusUpper.includes("CANCEL");
   const isRejected = statusUpper.includes("REJECT");
   const isCancelledOrRejected = isCancelled || isRejected;
 
-  // Cancel allowed ONLY for: PAYMENT_PENDING, CONFIRMED, ACCEPTED (strict backend rule)
-  const CANCELLABLE = ["PAYMENT_PENDING", "CONFIRMED", "ACCEPTED"];
+  // Cancel allowed only before SHIPPED/DELIVERED/CANCELLED
+  const CANCELLABLE = ["PLACED", "PAID", "CONFIRMED", "ACCEPTED", "CREATED", "PAYMENT_PENDING"];
   const canCancel = CANCELLABLE.includes(statusUpper);
+  const hasShipmentTrackingStarted =
+    statusUpper.includes("SHIP") ||
+    statusUpper.includes("OUT") ||
+    (statusUpper.includes("DELIVER") && !statusUpper.includes("OUT"));
+  const canChangeAddress = canCancel && !isCancelledOrRejected;
 
   const orderDate = order?.orderDate || order?.createdAt || order?.placedAt || "";
   const deliveryDate =
@@ -374,8 +623,9 @@ export default function OrderDetails() {
     order?.paymentId ||
     order?.razorpayPaymentId ||
     "";
-  const paymentStatus = order?.paymentStatus || order?.payment?.status || "";
+  const paymentStatus = normalizePaymentStatus(order?.paymentStatus || order?.payment?.status || "");
   const isCodOrder = (order?.paymentMethod || "").toUpperCase() === "CASH_ON_DELIVERY";
+  const canViewInvoice = (!isCodOrder && (paymentStatus === "SUCCESS" || paymentStatus === "REFUNDED")) || (isCodOrder && paymentStatus === "COLLECTED");
 
   // Address
   const addr = order?.deliveryAddress || order?.address || {};
@@ -410,6 +660,34 @@ export default function OrderDetails() {
     productImages[items[0]?.productId]?.imageUrl ||
     items[0]?.imageUrl ||
     "";
+
+  const shipmentStatus = (shipment?.shipmentStatus || shipment?.status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const shipmentTrackingNumber = shipment?.trackingNumber || "";
+  const shipmentCarrierName = shipment?.carrierName || shipment?.carrier || "";
+  const shipmentTrackingUrl = shipment?.trackingUrl || "";
+  const shipmentEstimatedDeliveryDate = shipment?.estimatedDeliveryDate || "";
+  const shipmentDeliveredAt = shipment?.deliveredAt || "";
+  const shipmentStepIndex = getShipmentStepIndex(shipmentStatus);
+  const confirmedDate = order?.confirmedAt || order?.paidAt || "";
+  const acceptedDate = order?.acceptedAt || "";
+  const outForDeliveryDate = order?.outForDeliveryAt || shipment?.outForDeliveryAt || "";
+  const paymentCollectedDate = order?.paymentCollectedAt || (paymentStatus === "COLLECTED" ? (order?.updatedAt || deliveryDate || "") : "");
+  const orderTimelineSteps = buildOrderTimelineSteps({
+    isCodOrder,
+    paymentStatus,
+    status,
+    orderDate,
+    confirmedDate,
+    acceptedDate,
+    shippedDate,
+    outForDeliveryDate,
+    deliveryDate,
+    paymentCollectedDate,
+  });
+
+  const handleChangeAddress = () => {
+    navigate("/retailer/bag");
+  };
 
   return (
     <div className="od-page">
@@ -487,7 +765,7 @@ export default function OrderDetails() {
                               </div>
                               <div className="od-step-text">
                                 <span className="od-step-label">
-                                  Order Confirmed, Today{orderDate ? `, ${formatDate(orderDate)}` : ""}
+                                  Order Placed, Today{orderDate ? `, ${formatDate(orderDate)}` : ""}
                                 </span>
                                 {orderDate && (
                                   <span className="od-step-sub">
@@ -509,20 +787,10 @@ export default function OrderDetails() {
                             </div>
                           </>
                         ) : (
-                          TRACKING_STEPS.map((step, i) => {
-                            const done = i <= activeStep;
-                            const current = i === activeStep;
-                            let sub = "";
-                            if (i === 0 && orderDate)
-                              sub = `Your order has been placed, ${formatDate(orderDate)}`;
-                            if (i === 1 && order?.confirmedAt)
-                              sub = `Payment confirmed, ${formatDate(order.confirmedAt)}`;
-                            if (i === 2 && order?.acceptedAt)
-                              sub = `Seller accepted your order`;
-                            if (i === 3 && shippedDate)
-                              sub = `Shipped on ${formatDate(shippedDate)}`;
-                            if (i === 4 && deliveryDate)
-                              sub = `${formatDate(deliveryDate)}`;
+                          orderTimelineSteps.map((step, i) => {
+                            const done = step.done;
+                            const current = step.current;
+                            const sub = step.sub || "";
 
                             return (
                               <div
@@ -533,9 +801,9 @@ export default function OrderDetails() {
                                   <span
                                     className={`od-step-dot ${done ? "od-step-dot--done" : ""}`}
                                   />
-                                  {i < TRACKING_STEPS.length - 1 && (
+                                  {i < orderTimelineSteps.length - 1 && (
                                     <span
-                                      className={`od-step-line ${done && i < activeStep ? "od-step-line--done" : ""}`}
+                                      className={`od-step-line ${done && orderTimelineSteps[i + 1]?.done ? "od-step-line--done" : ""}`}
                                     />
                                   )}
                                 </div>
@@ -557,22 +825,6 @@ export default function OrderDetails() {
                           })
                         )}
                       </div>
-
-                      {/* Shipment details */}
-                      {(order?.trackingNumber || order?.shipment?.trackingNumber || order?.carrierName || order?.shipment?.carrier) && (
-                        <div className="od-shipment-info">
-                          {(order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName) && (
-                            <span className="od-shipment-carrier">
-                              🚚 {order?.carrierName || order?.shipment?.carrier || order?.shipment?.carrierName}
-                            </span>
-                          )}
-                          {(order?.trackingNumber || order?.shipment?.trackingNumber) && (
-                            <span className="od-shipment-tracking">
-                              Tracking: {order?.trackingNumber || order?.shipment?.trackingNumber}
-                            </span>
-                          )}
-                        </div>
-                      )}
 
                       <button type="button" className="od-see-updates" onClick={() => setShowUpdatesModal(true)}>
                         See All Updates &gt;
@@ -604,7 +856,7 @@ export default function OrderDetails() {
                           </div>
                           <div className="od-step-text">
                             <span className="od-step-label">
-                              Order Confirmed{orderDate ? `, ${formatDate(orderDate)}` : ""}
+                              Order Placed{orderDate ? `, ${formatDate(orderDate)}` : ""}
                             </span>
                           </div>
                         </div>
@@ -620,20 +872,10 @@ export default function OrderDetails() {
                         </div>
                       </>
                     ) : (
-                      TRACKING_STEPS.map((step, i) => {
-                        const done = i <= activeStep;
-                        const current = i === activeStep;
-                        let sub = "";
-                        if (i === 0 && orderDate)
-                          sub = `Your order has been placed, ${formatDate(orderDate)}`;
-                        if (i === 1 && order?.confirmedAt)
-                          sub = `Payment confirmed, ${formatDate(order.confirmedAt)}`;
-                        if (i === 2 && order?.acceptedAt)
-                          sub = `Seller accepted your order`;
-                        if (i === 3 && shippedDate)
-                          sub = `Shipped on ${formatDate(shippedDate)}`;
-                        if (i === 4 && deliveryDate)
-                          sub = `${formatDate(deliveryDate)}`;
+                      orderTimelineSteps.map((step, i) => {
+                        const done = step.done;
+                        const current = step.current;
+                        const sub = step.sub || "";
 
                         return (
                           <div
@@ -644,9 +886,9 @@ export default function OrderDetails() {
                               <span
                                 className={`od-step-dot ${done ? "od-step-dot--done" : ""}`}
                               />
-                              {i < TRACKING_STEPS.length - 1 && (
+                              {i < orderTimelineSteps.length - 1 && (
                                 <span
-                                  className={`od-step-line ${done && i < activeStep ? "od-step-line--done" : ""}`}
+                                  className={`od-step-line ${done && orderTimelineSteps[i + 1]?.done ? "od-step-line--done" : ""}`}
                                 />
                               )}
                             </div>
@@ -675,8 +917,84 @@ export default function OrderDetails() {
                 </div>
               )}
 
+              <div className="od-card">
+                <div className="od-side-heading">Shipment Tracking</div>
+
+                {!hasShipmentTrackingStarted && (
+                  <div className="od-note">
+                    {isCancelledOrRejected
+                      ? "Shipment tracking is unavailable because this order was cancelled before shipment."
+                      : "Shipment tracking will start after the order is marked as shipped."}
+                  </div>
+                )}
+
+                {hasShipmentTrackingStarted && shipmentLoading && <Loader size="sm" text="Loading shipment details…" />}
+
+                {hasShipmentTrackingStarted && !shipmentLoading && shipmentError && (
+                  <div className="od-error">{shipmentError}</div>
+                )}
+
+                {hasShipmentTrackingStarted && !shipmentLoading && !shipmentError && !shipment && (
+                  <div className="od-note">Shipment not created yet</div>
+                )}
+
+                {hasShipmentTrackingStarted && !shipmentLoading && !shipmentError && shipment && (
+                  <>
+                    <div className="od-price-row">
+                      <span>Shipment Status</span>
+                      <span>{shipmentStatus || "-"}</span>
+                    </div>
+                    <div className="od-price-row">
+                      <span>Tracking Number</span>
+                      <span>{shipmentTrackingNumber || "-"}</span>
+                    </div>
+                    <div className="od-price-row">
+                      <span>Carrier Name</span>
+                      <span>{shipmentCarrierName || "-"}</span>
+                    </div>
+                    <div className="od-price-row">
+                      <span>Estimated Delivery</span>
+                      <span>{shipmentEstimatedDeliveryDate ? formatDateTime(shipmentEstimatedDeliveryDate) : "-"}</span>
+                    </div>
+                    <div className="od-price-row">
+                      <span>Delivered At</span>
+                      <span>{shipmentDeliveredAt ? formatDateTime(shipmentDeliveredAt) : "-"}</span>
+                    </div>
+                    {shipmentTrackingUrl && (
+                      <div className="od-price-row">
+                        <span>Tracking Link</span>
+                        <a href={shipmentTrackingUrl} target="_blank" rel="noreferrer">Open Tracking</a>
+                      </div>
+                    )}
+
+                    <div className="od-timeline">
+                      {SHIPMENT_STEPS.map((step, i) => {
+                        const done = shipmentStepIndex >= 0 && i <= shipmentStepIndex;
+                        const current = shipmentStepIndex === i;
+                        return (
+                          <div
+                            className={`od-step ${done ? "od-step--done" : ""} ${current ? "od-step--current" : ""}`}
+                            key={step}
+                          >
+                            <div className="od-step-dot-col">
+                              <span className={`od-step-dot ${done ? "od-step-dot--done" : ""}`} />
+                              {i < SHIPMENT_STEPS.length - 1 && (
+                                <span className={`od-step-line ${done && shipmentStepIndex > i ? "od-step-line--done" : ""}`} />
+                              )}
+                            </div>
+                            <div className="od-step-text">
+                              <span className="od-step-label">{step}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+              </div>
+
               {/* Delivery exec note */}
-              {!isDelivered && !isCancelledOrRejected && (
+              {hasShipmentTrackingStarted && !isDelivered && !isCancelledOrRejected && (
                 <div className="od-card od-note">
                   Delivery Executive details will be available once the order is
                   out for delivery
@@ -689,9 +1007,10 @@ export default function OrderDetails() {
                   <button
                     type="button"
                     className="od-action-btn od-action-cancel"
+                    disabled={cancelling}
                     onClick={() => setShowCancelModal(true)}
                   >
-                    Cancel
+                    {cancelling ? "Cancelling…" : "Cancel Order"}
                   </button>
                   <button
                     type="button"
@@ -719,6 +1038,149 @@ export default function OrderDetails() {
                   >
                     💬 Chat with us
                   </button>
+                </div>
+              )}
+
+              {canViewInvoice && (
+                <div className="od-card od-actions od-actions--single">
+                  <button
+                    type="button"
+                    className="od-action-btn od-action-invoice"
+                    onClick={() => navigate(`/invoice/${orderId}`)}
+                  >
+                    View Invoice
+                  </button>
+                </div>
+              )}
+
+              {isDelivered && !isCancelledOrRejected && (
+                <div className="od-card od-actions od-actions--single">
+                  <button
+                    type="button"
+                    className="od-action-btn od-action-cancel"
+                    onClick={handleOpenReturnForm}
+                  >
+                    Request Return
+                  </button>
+                </div>
+              )}
+
+              {showReturnForm && isDelivered && !isCancelledOrRejected && (
+                <div className="od-card">
+                  <div className="od-side-heading">Return Request</div>
+
+                  <div className="od-price-row">
+                    <span>Order Item</span>
+                    <select
+                      value={returnItemId}
+                      onChange={(e) => setReturnItemId(e.target.value)}
+                    >
+                      {(order?.items || order?.orderItems || []).map((item, idx) => {
+                        const id = String(item?.orderItemId || item?.id || "");
+                        const label = item?.productName || item?.name || `Item ${idx + 1}`;
+                        return (
+                          <option key={`${id}-${idx}`} value={id}>
+                            {label}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  <div className="od-price-row">
+                    <span>Returned Quantity</span>
+                    <input
+                      type="number"
+                      min="1"
+                      value={returnedQuantity}
+                      onChange={(e) => setReturnedQuantity(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="od-price-row">
+                    <span>Return Condition</span>
+                    <select
+                      value={returnCondition}
+                      onChange={(e) => setReturnCondition(e.target.value)}
+                    >
+                      {RETURN_CONDITIONS.map((condition) => (
+                        <option key={condition} value={condition}>{condition}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="od-price-row">
+                    <span>Reason</span>
+                    <input
+                      type="text"
+                      value={returnReason}
+                      onChange={(e) => setReturnReason(e.target.value)}
+                      placeholder="Why are you returning this item?"
+                    />
+                  </div>
+
+                  {returnError && <div className="od-error">{returnError}</div>}
+
+                  <div className="od-modal-actions">
+                    <button
+                      type="button"
+                      className="od-modal-btn od-modal-btn--cancel"
+                      disabled={returnSubmitting}
+                      onClick={handleSubmitReturnRequest}
+                    >
+                      {returnSubmitting ? "Submitting…" : "Submit Return"}
+                    </button>
+                    <button
+                      type="button"
+                      className="od-modal-btn od-modal-btn--keep"
+                      disabled={returnSubmitting}
+                      onClick={() => {
+                        setShowReturnForm(false);
+                        setReturnError("");
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {(returnTrackingLoading || returnData) && (
+                <div className="od-card">
+                  <div className="od-side-heading">Return Tracking</div>
+                  {returnTrackingLoading && <Loader size="sm" text="Loading return status…" />}
+                  {!returnTrackingLoading && returnData && (
+                    <>
+                      <div className="od-price-row">
+                        <span>Return ID</span>
+                        <span>{returnData.id || returnData.returnId || returnId || "-"}</span>
+                      </div>
+                      <div className="od-price-row">
+                        <span>Status</span>
+                        <span>{returnData.status || "REQUESTED"}</span>
+                      </div>
+                      <div className="od-timeline">
+                        {["REQUESTED", "APPROVED", "RECEIVED", "INSPECTED", "COMPLETED"].map((step, i, arr) => {
+                          const current = (returnData.status || "REQUESTED").toUpperCase();
+                          const currentIdx = arr.indexOf(current) >= 0 ? arr.indexOf(current) : 0;
+                          const done = i <= currentIdx;
+                          return (
+                            <div key={step} className={`od-step ${done ? "od-step--done" : ""} ${i === currentIdx ? "od-step--current" : ""}`}>
+                              <div className="od-step-dot-col">
+                                <span className={`od-step-dot ${done ? "od-step-dot--done" : ""}`} />
+                                {i < arr.length - 1 && (
+                                  <span className={`od-step-line ${done && i < currentIdx ? "od-step-line--done" : ""}`} />
+                                )}
+                              </div>
+                              <div className="od-step-text">
+                                <span className="od-step-label">{step}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
                 </div>
               )}
 
@@ -1003,7 +1465,14 @@ export default function OrderDetails() {
             <>
               {/* Delivery details */}
               <div className="od-side-card">
-                <div className="od-side-heading">Delivery details</div>
+                <div className="od-side-heading-row">
+                  <div className="od-side-heading">Delivery details</div>
+                  {canChangeAddress && (
+                    <button type="button" className="od-address-change-btn" onClick={handleChangeAddress}>
+                      Change
+                    </button>
+                  )}
+                </div>
 
                 <div className="od-addr-row">
                   <span className="od-addr-icon">🏠</span>
@@ -1093,12 +1562,26 @@ export default function OrderDetails() {
                   <div className="od-price-row">
                     <span>Payment Status</span>
                     <span className={`od-cod-status ${paymentStatus === "COLLECTED" ? "od-cod-status--collected" : "od-cod-status--pending"}`}>
-                      {paymentStatus === "COLLECTED" ? "🟢 Collected" : "🟡 Pending Collection"}
+                      {getPaymentStatusLabel(paymentStatus)}
                     </span>
                   </div>
                 )}
 
-                {!isCodOrder && !isCodOrder && paymentId && (
+                {!isCodOrder && paymentStatus && (
+                  <div className="od-price-row">
+                    <span>Payment Status</span>
+                    <span className="od-payment-id">{getPaymentStatusLabel(paymentStatus)}</span>
+                  </div>
+                )}
+
+                {!isCodOrder && paymentStatus === "REFUNDED" && (
+                  <div className="od-price-row">
+                    <span>Refund</span>
+                    <span className="od-refund-completed-badge">Refund Completed</span>
+                  </div>
+                )}
+
+                {!isCodOrder && paymentId && (
                   <div className="od-price-row">
                     <span>Payment ID</span>
                     <span className="od-payment-id">{paymentId}</span>
@@ -1140,75 +1623,26 @@ export default function OrderDetails() {
                 </div>
               </div>
 
-              {/* Payment Confirmed */}
-              {!isCancelledOrRejected && (
-                <div className="od-update-item">
-                  <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 1 ? 'od-update-dot--green' : ''}`} />
-                    <span className={`od-update-line ${activeStep >= 2 ? 'od-update-line--green' : ''}`} />
-                  </div>
-                  <div className="od-update-content">
-                    <div className="od-update-heading">
-                      <strong>Payment Confirmed</strong>
-                      {order?.confirmedAt && <span className="od-update-date">{formatDateShort(order.confirmedAt)}</span>}
+              {!isCancelledOrRejected && orderTimelineSteps.slice(1).map((step, index, arr) => {
+                const done = step.done;
+                const hasNext = index < arr.length - 1;
+                return (
+                  <div className="od-update-item" key={`update-${step.key}`}>
+                    <div className="od-update-dot-col">
+                      <span className={`od-update-dot ${done ? "od-update-dot--green" : ""}`} />
+                      {hasNext && (
+                        <span className={`od-update-line ${done && arr[index + 1]?.done ? "od-update-line--green" : ""}`} />
+                      )}
                     </div>
-                    {order?.confirmedAt && <div className="od-update-time">{formatDateTime(order.confirmedAt)}</div>}
-                  </div>
-                </div>
-              )}
-
-              {/* Accepted by Seller */}
-              {!isCancelledOrRejected && (
-                <div className="od-update-item">
-                  <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 2 ? 'od-update-dot--green' : ''}`} />
-                    <span className={`od-update-line ${activeStep >= 3 ? 'od-update-line--green' : ''}`} />
-                  </div>
-                  <div className="od-update-content">
-                    <div className="od-update-heading">
-                      <strong>Accepted by Seller</strong>
-                      {order?.acceptedAt && <span className="od-update-date">{formatDateShort(order.acceptedAt)}</span>}
+                    <div className="od-update-content">
+                      <div className="od-update-heading">
+                        <strong>{step.label}</strong>
+                      </div>
+                      {step.sub && <div className="od-update-desc">{step.sub}</div>}
                     </div>
-                    {order?.acceptedAt && <div className="od-update-desc">Seller is preparing your order.</div>}
-                    {order?.acceptedAt && <div className="od-update-time">{formatDateTime(order.acceptedAt)}</div>}
                   </div>
-                </div>
-              )}
-
-              {/* Shipped */}
-              {!isCancelledOrRejected && (
-                <div className="od-update-item">
-                  <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 3 ? 'od-update-dot--green' : ''}`} />
-                    <span className={`od-update-line ${activeStep >= 4 ? 'od-update-line--green' : ''}`} />
-                  </div>
-                  <div className="od-update-content">
-                    <div className="od-update-heading">
-                      <strong>Shipped</strong>
-                      {shippedDate && <span className="od-update-date">{formatDateShort(shippedDate)}</span>}
-                    </div>
-                    {shippedDate && <div className="od-update-desc">Your item has been shipped.</div>}
-                    {shippedDate && <div className="od-update-time">{formatDateTime(shippedDate)}</div>}
-                  </div>
-                </div>
-              )}
-
-              {/* Delivered */}
-              {!isCancelledOrRejected && (
-                <div className="od-update-item">
-                  <div className="od-update-dot-col">
-                    <span className={`od-update-dot ${activeStep >= 4 ? 'od-update-dot--green' : ''}`} />
-                  </div>
-                  <div className="od-update-content">
-                    <div className="od-update-heading">
-                      <strong>Delivered</strong>
-                      {deliveryDate && <span className="od-update-date">{formatDateShort(deliveryDate)}</span>}
-                    </div>
-                    {order?.deliveredAt && <div className="od-update-desc">Order delivered successfully.</div>}
-                    {order?.deliveredAt && <div className="od-update-time">{formatDateTime(order.deliveredAt)}</div>}
-                  </div>
-                </div>
-              )}
+                );
+              })}
 
               {/* Cancelled / Rejected */}
               {isCancelledOrRejected && (
@@ -1256,9 +1690,7 @@ export default function OrderDetails() {
               <div className="od-modal-savings">
                 <span className="od-modal-savings-icon">💰</span>
                 <span>
-                  {savings > 0
-                    ? `You saved ₹${formatCurrency(savings)} on this order!`
-                    : "Are you sure you want to cancel?"}
+                  Cancel Order
                 </span>
               </div>
               {firstItemImg && (
@@ -1271,26 +1703,60 @@ export default function OrderDetails() {
             </div>
 
             <div className="od-modal-warning">
-              If you cancel now, you may not be able to avail this deal again. Do you still want to cancel?
+              {isCodOrder
+                ? "Are you sure you want to cancel this order?"
+                : "Are you sure you want to cancel this order? Your payment will be refunded."}
+            </div>
+
+            <div className="od-modal-body">
+              <div className="od-modal-field">
+                <label htmlFor="cancel-reason">Reason</label>
+                <select id="cancel-reason" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}>
+                  {CANCEL_REASONS.map((reason) => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="od-modal-field">
+                <label htmlFor="cancel-comments">Comments</label>
+                <input
+                  id="cancel-comments"
+                  type="text"
+                  value={cancelComments}
+                  onChange={(e) => setCancelComments(e.target.value)}
+                  placeholder="Add optional comments"
+                />
+              </div>
+
+              {!isCodOrder && (
+                <div className="od-modal-field">
+                  <label htmlFor="cancel-refund-mode">Refund Mode</label>
+                  <select id="cancel-refund-mode" value={cancelRefundMode} onChange={(e) => setCancelRefundMode(e.target.value)}>
+                    {REFUND_MODES.map((mode) => (
+                      <option key={mode} value={mode}>{mode}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             <div className="od-modal-actions">
               <button
                 type="button"
                 className="od-modal-btn od-modal-btn--keep"
+                disabled={cancelling}
                 onClick={() => setShowCancelModal(false)}
               >
-                Don&apos;t cancel
+                Close
               </button>
               <button
                 type="button"
                 className="od-modal-btn od-modal-btn--cancel"
-                onClick={() => {
-                  setShowCancelModal(false);
-                  navigate(`/orders/${orderId}/cancel`);
-                }}
+                disabled={cancelling}
+                onClick={handleCancelOrder}
               >
-                Cancel Order
+                {cancelling ? "Cancelling…" : "Cancel Order"}
               </button>
             </div>
           </div>

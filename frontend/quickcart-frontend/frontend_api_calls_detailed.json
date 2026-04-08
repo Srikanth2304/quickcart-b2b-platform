@@ -1,0 +1,426 @@
+[
+  {
+    "file": "src/auth/AuthContext.jsx",
+    "line": 114,
+    "method": "POST",
+    "endpoint": "/auth/login",
+    "functionName": "clearStorage",
+    "context": "  }\n\n  const login = useCallback(async (email, password) => {\n    const res = await api.post(\"/auth/login\", { email, password });\n    const token = extractTokenFromResponse(res.data);\n\n    if (!token) throw new Error(\"No token received from server.\");\n\n    const role = getRoleFromToken(token);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 150,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "fetchOrder",
+    "context": "      setLoading(true);\n      setError(\"\");\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        if (!isMounted) return;\n        const orderData = res?.data || null;\n        setOrder(orderData);\n\n        // Fetch product images"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 162,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "functionName": "fetchOrder",
+    "context": "          items.map(async (item) => {\n            if (!item.productId) return;\n            try {\n              const pRes = await api.get(`/products/${item.productId}`);\n              const p = pRes?.data;\n              imgMap[item.productId] = {\n                imageUrl: p?.imageUrl || p?.image || p?.thumbnail || \"\",\n                brand: p?.brand || \"\",\n                name: p?.name || \"\","
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 182,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "fetchOrder",
+    "context": "        if (status.includes(\"CANCEL\") || status.includes(\"REJECT\")) {\n          try {\n            setRefundLoading(true);\n            const rRes = await api.get(`/orders/${orderId}/refund`);\n            if (isMounted) setRefund(rRes?.data || null);\n          } catch (err) {\n            // 404 = no refund record exists, safely set null\n            if (isMounted) setRefund(null);\n          } finally {"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 209,
+    "method": "POST",
+    "endpoint": "endpoint(orderId",
+    "functionName": "handleLifecycleAction",
+    "context": "    try {\n      const endpoint = LIFECYCLE_ENDPOINTS[action];\n      if (!endpoint) return;\n      await api.post(endpoint(orderId));\n      // Re-fetch order\n      const res = await api.get(`/orders/${orderId}`);\n      if (res?.data) setOrder(res.data);\n      // Fetch refund for cancel/reject (refund may be auto-created)\n      if (action === \"reject\" || action === \"cancel\") {"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 211,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "handleLifecycleAction",
+    "context": "      if (!endpoint) return;\n      await api.post(endpoint(orderId));\n      // Re-fetch order\n      const res = await api.get(`/orders/${orderId}`);\n      if (res?.data) setOrder(res.data);\n      // Fetch refund for cancel/reject (refund may be auto-created)\n      if (action === \"reject\" || action === \"cancel\") {\n        try {\n          const rRes = await api.get(`/orders/${orderId}/refund`);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 216,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "handleLifecycleAction",
+    "context": "      // Fetch refund for cancel/reject (refund may be auto-created)\n      if (action === \"reject\" || action === \"cancel\") {\n        try {\n          const rRes = await api.get(`/orders/${orderId}/refund`);\n          setRefund(rRes?.data || null);\n        } catch {\n          // no refund record created yet\n        }\n      }"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 235,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/refund/${action}",
+    "functionName": "handleRefundAction",
+    "context": "    setConfirmModal(null);\n    setRefundActionInProgress(action);\n    try {\n      await api.post(`/orders/${orderId}/refund/${action}`);\n      try {\n        const rRes = await api.get(`/orders/${orderId}/refund`);\n        setRefund(rRes?.data || null);\n      } catch (err) {\n        if (err?.response?.status === 404) {"
+  },
+  {
+    "file": "src/pages/ManufacturerOrderDetails.jsx",
+    "line": 237,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "handleRefundAction",
+    "context": "    try {\n      await api.post(`/orders/${orderId}/refund/${action}`);\n      try {\n        const rRes = await api.get(`/orders/${orderId}/refund`);\n        setRefund(rRes?.data || null);\n      } catch (err) {\n        if (err?.response?.status === 404) {\n          setRefund(null);\n        } else {"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 137,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "functionName": "fetchSummary",
+    "context": "  /* Fetch summary counts from backend (never compute on frontend) */\n  const fetchSummary = async () => {\n    try {\n      const res = await api.get(\"/orders/summary\");\n      if (res?.data) {\n        setSummary({\n          total: res.data.total ?? 0,\n          active: res.data.active ?? 0,\n          delivered: res.data.delivered ?? 0,"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 174,
+    "method": "GET",
+    "endpoint": "/orders",
+    "functionName": "fetchOrders",
+    "context": "      if (debouncedSearch) params.search = debouncedSearch;\n      if (sort) params.sort = sort;\n\n      const res = await api.get(\"/orders\", { params });\n      const resData = res?.data || {};\n      const data = Array.isArray(resData) ? resData : resData.content || resData.orders || [];\n      setOrders(data);\n      setTotalPages(resData.totalPages || 1);\n      setTotalElements(resData.totalElements || data.length);"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 199,
+    "method": "GET",
+    "endpoint": "/orders/${o.id}/refund",
+    "functionName": "fetchOrders",
+    "context": "          refundEligible.map(async (o) => {\n            if (refundMap[o.id]) return; // already cached\n            try {\n              const rRes = await api.get(`/orders/${o.id}/refund`);\n              refundMap[o.id] = rRes?.data || null;\n            } catch {\n              // no refund exists or fetch failed — ignore\n            }\n          })"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 224,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/refund/${action}",
+    "functionName": "handleRefundAction",
+    "context": "    setConfirmModal(null);\n    setRefundActions((prev) => ({ ...prev, [orderId]: action }));\n    try {\n      await api.post(`/orders/${orderId}/refund/${action}`);\n      // Refetch refund data for this order\n      try {\n        const rRes = await api.get(`/orders/${orderId}/refund`);\n        setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));\n      } catch (err) {"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 227,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "handleRefundAction",
+    "context": "      await api.post(`/orders/${orderId}/refund/${action}`);\n      // Refetch refund data for this order\n      try {\n        const rRes = await api.get(`/orders/${orderId}/refund`);\n        setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));\n      } catch (err) {\n        if (err?.response?.status === 404) {\n          // Refund record not found — clear it\n          setRefunds((prev) => ({ ...prev, [orderId]: null }));"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 257,
+    "method": "POST",
+    "endpoint": "endpoint(orderId",
+    "functionName": "handleLifecycleAction",
+    "context": "    try {\n      const endpoint = LIFECYCLE_ENDPOINTS[action];\n      if (!endpoint) return;\n      await api.post(endpoint(orderId));\n      // Re-fetch the single order to get updated status\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        if (res?.data) {\n          setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...res.data } : o)));"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 260,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "handleLifecycleAction",
+    "context": "      await api.post(endpoint(orderId));\n      // Re-fetch the single order to get updated status\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        if (res?.data) {\n          setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, ...res.data } : o)));\n        }\n      } catch {\n        // Fallback: refetch current page"
+  },
+  {
+    "file": "src/pages/ManufacturerOrders.jsx",
+    "line": 271,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "handleLifecycleAction",
+    "context": "      // If the action was reject or cancel, fetch refund info (refund may be auto-created)\n      if (action === \"reject\" || action === \"cancel\") {\n        try {\n          const rRes = await api.get(`/orders/${orderId}/refund`);\n          setRefunds((prev) => ({ ...prev, [orderId]: rRes?.data || null }));\n        } catch {\n          // no refund record created yet — ignore\n        }\n      }"
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 56,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "fetchOrder",
+    "context": "      setLoading(true);\n      setError(\"\");\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        if (!isMounted) return;\n        const data = res?.data || null;\n        setOrder(data);\n\n        // Status guard — only allow cancel for PAYMENT_PENDING, CONFIRMED, ACCEPTED"
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 78,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "functionName": "fetchOrder",
+    "context": "          items.map(async (item) => {\n            if (!item.productId) return;\n            try {\n              const pRes = await api.get(`/products/${item.productId}`);\n              const p = pRes?.data;\n              infoMap[item.productId] = {\n                imageUrl: p?.imageUrl || p?.image || \"\",\n                brand: p?.brand || \"\",\n                name: p?.name || \"\","
+  },
+  {
+    "file": "src/pages/OrderCancel.jsx",
+    "line": 112,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "handleSubmitCancellation",
+    "context": "  const handleSubmitCancellation = async () => {\n    setSubmitting(true);\n    try {\n      await api.post(`/orders/${orderId}/cancel`);\n      showToast(\"Order cancelled successfully\", \"success\");\n      navigate(`/orders/${orderId}`, { replace: true });\n    } catch (error) {\n      if (!navigator.onLine || error?.code === \"ERR_NETWORK\" || error?.message === \"Network Error\") {\n        showToast(\"No internet connection. Please check your network and try again.\", \"error\");"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 117,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "refreshRefund",
+    "context": "    if (!orderId) return;\n    setRefundRefreshing(true);\n    try {\n      const res = await api.get(`/orders/${orderId}/refund`);\n      setRefund(res?.data || null);\n    } catch {\n      // no refund yet\n    } finally {\n      setRefundRefreshing(false);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 137,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "fetchOrder",
+    "context": "      setLoading(true);\n      setError(\"\");\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        if (!isMounted) return;\n        const orderData = res?.data || null;\n        setOrder(orderData);\n\n        // Fetch product details for each item"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 149,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}",
+    "functionName": "fetchOrder",
+    "context": "          orderItems.map(async (item) => {\n            if (!item.productId) return;\n            try {\n              const pRes = await api.get(`/products/${item.productId}`);\n              const p = pRes?.data;\n              imgMap[item.productId] = {\n                imageUrl: p?.imageUrl || p?.image || p?.thumbnail || \"\",\n                brand: p?.brand || \"\",\n                name: p?.name || \"\","
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 173,
+    "method": "GET",
+    "endpoint": "/products/${item.productId}/reviews/my",
+    "functionName": "fetchOrder",
+    "context": "            orderItems.map(async (item) => {\n              if (!item.productId) return;\n              try {\n                const rRes = await api.get(`/products/${item.productId}/reviews/my`, {\n                  validateStatus: () => true, // never throw — we inspect status ourselves\n                });\n                if (rRes?.status === 200 && rRes?.data && rRes.data.rating) {\n                  revMap[item.productId] = {\n                    rating: rRes.data.rating,"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 197,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "fetchOrder",
+    "context": "        if (orderStatus.includes(\"CANCEL\") || orderStatus.includes(\"REJECT\")) {\n          try {\n            setRefundLoading(true);\n            const refundRes = await api.get(`/orders/${orderId}/refund`);\n            if (isMounted) setRefund(refundRes?.data || null);\n          } catch {\n            // No refund exists or endpoint not available\n            if (isMounted) setRefund(null);\n          } finally {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 242,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "poll",
+    "context": "\n    const poll = async () => {\n      try {\n        const res = await api.get(`/orders/${orderId}/refund`, {\n          signal: controller.signal,\n        });\n        const newRefund = res?.data || null;\n        errorCount = 0; // reset on success\n        setRefund((prev) => {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 275,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "handleCancelOrder",
+    "context": "  const handleCancelOrder = async () => {\n    setCancelling(true);\n    try {\n      await api.post(`/orders/${orderId}/cancel`);\n      // Re-fetch the full order to get accurate status\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        setOrder(res?.data || null);\n      } catch {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 278,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "handleCancelOrder",
+    "context": "      await api.post(`/orders/${orderId}/cancel`);\n      // Re-fetch the full order to get accurate status\n      try {\n        const res = await api.get(`/orders/${orderId}`);\n        setOrder(res?.data || null);\n      } catch {\n        setOrder((prev) => (prev ? { ...prev, status: \"CANCELLED\" } : prev));\n      }\n      setShowCancelModal(false);"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 287,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}/refund",
+    "functionName": "handleCancelOrder",
+    "context": "      showToast(\"Order cancelled successfully\", \"success\");\n      // Fetch refund data (backend may auto-create refund on cancel)\n      try {\n        const rRes = await api.get(`/orders/${orderId}/refund`);\n        setRefund(rRes?.data || null);\n      } catch {\n        // refund not yet created — polling will pick it up\n      }\n    } catch (err) {"
+  },
+  {
+    "file": "src/pages/OrderDetails.jsx",
+    "line": 309,
+    "method": "POST",
+    "endpoint": "/products/${productId}/reviews",
+    "functionName": "handleSubmitReview",
+    "context": "    if (!draft?.rating) return;\n    setReviewSubmitting((p) => ({ ...p, [productId]: true }));\n    try {\n      await api.post(`/products/${productId}/reviews`, {\n        rating: draft.rating,\n        comment: draft.comment || \"\",\n      });\n      setReviews((p) => ({ ...p, [productId]: { rating: draft.rating, comment: draft.comment || \"\", submitted: true } }));\n      setExpandedReview(null);"
+  },
+  {
+    "file": "src/pages/OrderSuccess.jsx",
+    "line": 53,
+    "method": "GET",
+    "endpoint": "/orders/${orderId}",
+    "functionName": "fetchOrder",
+    "context": "      setLoading(true);\n      setError(\"\");\n      try {\n        const response = await api.get(`/orders/${orderId}`, {\n          headers: {\n            Authorization: token ? `Bearer ${token}` : undefined,\n          },\n        });\n        if (!isMounted) return;"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 78,
+    "method": "GET",
+    "endpoint": "/addresses",
+    "functionName": "refreshAddresses",
+    "context": "    setAddressLoading(true);\n    setAddressError(\"\");\n    try {\n      const response = await api.get(\"/addresses\");\n      const list = Array.isArray(response.data) ? response.data : response.data?.content || [];\n      setAddressList(list);\n      if (list.length === 0) {\n        setAddressFormOpen(true);\n        setSelectedAddressId(null);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 148,
+    "method": "PATCH",
+    "endpoint": "/addresses/${editingAddressId}",
+    "functionName": "pick",
+    "context": "          state: pick(addressForm.state, original.state),\n          pincode: pick(addressForm.pincode, original.pincode),\n        };\n        await api.patch(`/addresses/${editingAddressId}`, payload);\n        showToast(\"Address updated\", \"success\");\n      } else {\n        const payload = {\n          name: addressForm.name,\n          phone: addressForm.phone,"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 164,
+    "method": "POST",
+    "endpoint": "/addresses",
+    "functionName": "pick",
+    "context": "          pincode: addressForm.pincode,\n          isDefault: addressList.length === 0,\n        };\n        await api.post(\"/addresses\", payload);\n        showToast(\"Address saved\", \"success\");\n      }\n\n      setAddressFormOpen(false);\n      setEditingAddressId(null);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 179,
+    "method": "PUT",
+    "endpoint": "/addresses/${id}/default",
+    "functionName": "handleMakeDefault",
+    "context": "\n  const handleMakeDefault = async (id) => {\n    try {\n      await api.put(`/addresses/${id}/default`);\n      showToast(\"Default address updated\", \"success\");\n      await refreshAddresses();\n    } catch (error) {\n      showToast(\"Failed to set default\", \"error\");\n    }"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 206,
+    "method": "DELETE",
+    "endpoint": "/addresses/${id}",
+    "functionName": "handleDeleteAddress",
+    "context": "\n  const handleDeleteAddress = async (id) => {\n    try {\n      await api.delete(`/addresses/${id}`);\n      showToast(\"Address deleted\", \"success\");\n      await refreshAddresses();\n    } catch (error) {\n      showToast(\"Failed to delete address\", \"error\");\n    }"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 300,
+    "method": "GET",
+    "endpoint": "/payments/razorpay/key",
+    "functionName": "fetchRazorpayKey",
+    "context": "  const isSummaryStep = checkoutStep === \"summary\";\n\n  const fetchRazorpayKey = async () => {\n    const response = await api.get(\"/payments/razorpay/key\");\n    return response?.data?.keyId || \"\";\n  };\n\n  const handlePlaceOrder = async () => {\n    if (!selectedAddressId) {"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 326,
+    "method": "POST",
+    "endpoint": "/orders",
+    "functionName": "handlePlaceOrder",
+    "context": "    setPlacingOrder(true);\n    let orderId = null;\n    try {\n      const orderResponse = await api.post(\"/orders\", payload);\n      orderId = orderResponse?.data?.orderId;\n      if (!orderId) {\n        showToast(\"Failed to create order\", \"error\");\n        setPlacingOrder(false);\n        return;"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 349,
+    "method": "POST",
+    "endpoint": "/payments/razorpay/order",
+    "functionName": "handlePlaceOrder",
+    "context": "      }\n\n      // ── ONLINE: proceed with Razorpay ──\n      const razorpayResponse = await api.post(\"/payments/razorpay/order\", { orderId });\n      const razorpayOrderId = razorpayResponse?.data?.razorpayOrderId;\n      const amount = razorpayResponse?.data?.amount;\n      const currency = razorpayResponse?.data?.currency || \"INR\";\n\n      if (!razorpayOrderId || !amount) {"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 356,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "handlePlaceOrder",
+    "context": "\n      if (!razorpayOrderId || !amount) {\n        showToast(\"Failed to initiate payment\", \"error\");\n        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }\n        setPlacingOrder(false);\n        return;\n      }\n\n      const loadRazorpaySdk = () => {"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 383,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "loadRazorpaySdk",
+    "context": "      const sdkLoaded = await loadRazorpaySdk();\n      if (!sdkLoaded || !window?.Razorpay) {\n        showToast(\"Razorpay SDK not loaded\", \"error\");\n        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }\n        setPlacingOrder(false);\n        return;\n      }\n\n      const keyId = await fetchRazorpayKey();"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 391,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "loadRazorpaySdk",
+    "context": "      const keyId = await fetchRazorpayKey();\n      if (!keyId) {\n        showToast(\"Razorpay key is missing\", \"error\");\n        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }\n        setPlacingOrder(false);\n        return;\n      }\n\n      // Persist order context for recovery if verify call fails"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 410,
+    "method": "POST",
+    "endpoint": "/payments/razorpay/verify",
+    "functionName": "loadRazorpaySdk",
+    "context": "        order_id: razorpayOrderId,\n        handler: async (response) => {\n          try {\n            await api.post(\"/payments/razorpay/verify\", {\n              orderId,\n              razorpayPaymentId: response?.razorpay_payment_id,\n              razorpayOrderId: response?.razorpay_order_id,\n              razorpaySignature: response?.razorpay_signature,\n            });"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 443,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "loadRazorpaySdk",
+    "context": "          ondismiss: async () => {\n            // User closed Razorpay without paying → cancel the unpaid order\n            try {\n              await api.post(`/orders/${orderId}/cancel`);\n            } catch {\n              // If cancel fails, backend should auto-expire unpaid orders anyway\n            }\n            try {\n              sessionStorage.removeItem(`pending-order`);"
+  },
+  {
+    "file": "src/pages/RetailerBag.jsx",
+    "line": 465,
+    "method": "POST",
+    "endpoint": "/orders/${orderId}/cancel",
+    "functionName": "loadRazorpaySdk",
+    "context": "    } catch (error) {\n      // If order was created but something else failed, cancel it\n      if (orderId) {\n        try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }\n      }\n      if (!navigator.onLine || error?.code === \"ERR_NETWORK\" || error?.message === \"Network Error\") {\n        showToast(\"No internet connection. Please check your network and try again.\", \"error\");\n      } else if (error?.response?.status === 401 || error?.response?.status === 403) {\n        showToast(\"Session expired. Please log in again.\", \"error\");"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 144,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "functionName": "fetchSummary",
+    "context": "    let isMounted = true;\n    const fetchSummary = async () => {\n      try {\n        const res = await api.get(\"/orders/summary\");\n        if (isMounted && res?.data) {\n          setSummary({\n            total: res.data.total ?? 0,\n            active: res.data.active ?? 0,\n            delivered: res.data.delivered ?? 0,"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 182,
+    "method": "GET",
+    "endpoint": "/orders",
+    "functionName": "fetchSummary",
+    "context": "      if (searchQuery) params.search = searchQuery;\n      if (sortParam) params.sort = sortParam;\n\n      const res = await api.get(\"/orders\", { params });\n      const resData = res?.data || {};\n      const data = Array.isArray(resData)\n        ? resData\n        : resData.content || resData.orders || [];\n"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 207,
+    "method": "GET",
+    "endpoint": "/products/${pid}",
+    "functionName": "fetchSummary",
+    "context": "        await Promise.allSettled(\n          newPids.map(async (pid) => {\n            try {\n              const pRes = await api.get(`/products/${pid}`);\n              const p = pRes?.data;\n              imgMap[pid] = {\n                imageUrl: p?.imageUrl || p?.image || p?.thumbnail || \"\",\n                brand: p?.brand || \"\",\n                name: p?.name || \"\","
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 236,
+    "method": "GET",
+    "endpoint": "/orders/${o.id}/refund",
+    "functionName": "fetchSummary",
+    "context": "          cancelledOrders.map(async (o) => {\n            if (rMap[o.id]) return;\n            try {\n              const rRes = await api.get(`/orders/${o.id}/refund`);\n              if (rRes?.data) rMap[o.id] = rRes.data;\n            } catch { /* no refund exists */ }\n          })\n        );\n        setRefundMap(rMap);"
+  },
+  {
+    "file": "src/pages/RetailerOrders.jsx",
+    "line": 275,
+    "method": "GET",
+    "endpoint": "/orders/summary",
+    "functionName": "refreshSummary",
+    "context": "  /* ── Refresh summary after navigating back ── */\n  const refreshSummary = async () => {\n    try {\n      const res = await api.get(\"/orders/summary\");\n      if (res?.data) {\n        setSummary({\n          total: res.data.total ?? 0,\n          active: res.data.active ?? 0,\n          delivered: res.data.delivered ?? 0,"
+  },
+  {
+    "file": "src/pages/RetailerProductDetails.jsx",
+    "line": 59,
+    "method": "GET",
+    "endpoint": "/products/${id}",
+    "functionName": "fetchProduct",
+    "context": "      setLoading(true);\n      setError(\"\");\n      try {\n        const response = await api.get(`/products/${id}`);\n        if (!isMounted) return;\n        console.log(\"[RetailerProductDetails] /products/:id payload\", response.data);\n        setProduct(unwrapApiData(response.data) || null);\n      } catch (err) {\n        if (!isMounted) return;"
+  },
+  {
+    "file": "src/pages/RetailerProducts.jsx",
+    "line": 164,
+    "method": "GET",
+    "endpoint": "/products",
+    "functionName": "fetchProducts",
+    "context": "        if (sortBy === \"rating\") params.sort = \"rating,desc\";\n        if (sortBy === \"newest\") params.sort = \"createdAt,desc\";\n\n        const response = await api.get(\"/products\", { params });\n        if (!isMounted) return;\n        const pagePayload = extractPagePayload(response.data);\n        const content = pagePayload.content;\n        console.log(\"[RetailerProducts] /products payload\", response.data);\n        setProducts(content);"
+  },
+  {
+    "file": "src/pages/RetailerProducts.jsx",
+    "line": 290,
+    "method": "GET",
+    "endpoint": "/products/facets",
+    "functionName": "fetchFacets",
+    "context": "          params.inStock = availability.inStock;\n        }\n\n        const response = await api.get(\"/products/facets\", { params });\n        if (!isMounted) return;\n        const facets = unwrapApiData(response.data) || {};\n        console.log(\"[RetailerProducts] /products/facets payload\", response.data);\n        const rawCategories = Array.isArray(facets.categories) ? facets.categories : [];\n        const rawBrands = Array.isArray(facets.brands) ? facets.brands : [];"
+  }
+]

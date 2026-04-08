@@ -40,6 +40,12 @@ function timeAgo(d) {
   }
 }
 
+function normalizeOrderStatus(status) {
+  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  if (s === "PAID") return "CONFIRMED";
+  return s;
+}
+
 /* Status config */
 const STATUS_MAP = {
   PAYMENT_PENDING:  { label: "Payment Pending",  color: "#f59e0b", bg: "#fffbeb", icon: "⏳" },
@@ -54,7 +60,7 @@ const STATUS_MAP = {
 };
 
 function getStatusConfig(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s.includes("DELIVER") && !s.includes("OUT")) return STATUS_MAP.DELIVERED;
   if (s.includes("OUT")) return STATUS_MAP.OUT_FOR_DELIVERY;
   if (s.includes("SHIP")) return STATUS_MAP.SHIPPED;
@@ -67,7 +73,7 @@ function getStatusConfig(status) {
 
 /* Mini tracking steps */
 function getStepProgress(status) {
-  const s = (status || "").toUpperCase().replace(/[\s-]/g, "_");
+  const s = normalizeOrderStatus(status);
   if (s.includes("DELIVER") && !s.includes("OUT")) return 5;
   if (s.includes("OUT")) return 4;
   if (s.includes("SHIP")) return 3;
@@ -81,6 +87,12 @@ function getStepProgress(status) {
 function isRefundPending(status) {
   const s = (status || "").toUpperCase();
   return s === "PENDING" || s === "PENDING_APPROVAL";
+}
+
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
 }
 
 const REFUND_CONFIG = {
@@ -143,11 +155,12 @@ export default function RetailerOrders() {
       try {
         const res = await api.get("/orders/summary");
         if (isMounted && res?.data) {
+          const payload = unwrapApiData(res.data) || {};
           setSummary({
-            total: res.data.total ?? 0,
-            active: res.data.active ?? 0,
-            delivered: res.data.delivered ?? 0,
-            cancelled: res.data.cancelled ?? 0,
+            total: payload.total ?? 0,
+            active: payload.active ?? 0,
+            delivered: payload.delivered ?? 0,
+            cancelled: payload.cancelled ?? 0,
           });
         }
       } catch {
@@ -180,10 +193,8 @@ export default function RetailerOrders() {
       if (sortParam) params.sort = sortParam;
 
       const res = await api.get("/orders", { params });
-      const resData = res?.data || {};
-      const data = Array.isArray(resData)
-        ? resData
-        : resData.content || resData.orders || [];
+      const resData = unwrapApiData(res?.data) || {};
+      const data = Array.isArray(resData) ? resData : resData.content || resData.orders || [];
 
       setOrders(data);
       setTotalPages(resData.totalPages || 1);
@@ -205,7 +216,7 @@ export default function RetailerOrders() {
           newPids.map(async (pid) => {
             try {
               const pRes = await api.get(`/products/${pid}`);
-              const p = pRes?.data;
+              const p = unwrapApiData(pRes?.data) || {};
               imgMap[pid] = {
                 imageUrl: p?.imageUrl || p?.image || p?.thumbnail || "",
                 brand: p?.brand || "",
@@ -234,7 +245,8 @@ export default function RetailerOrders() {
             if (rMap[o.id]) return;
             try {
               const rRes = await api.get(`/orders/${o.id}/refund`);
-              if (rRes?.data) rMap[o.id] = rRes.data;
+              const refundPayload = unwrapApiData(rRes?.data);
+              if (refundPayload) rMap[o.id] = refundPayload;
             } catch { /* no refund exists */ }
           })
         );
@@ -274,11 +286,12 @@ export default function RetailerOrders() {
     try {
       const res = await api.get("/orders/summary");
       if (res?.data) {
+        const payload = unwrapApiData(res.data) || {};
         setSummary({
-          total: res.data.total ?? 0,
-          active: res.data.active ?? 0,
-          delivered: res.data.delivered ?? 0,
-          cancelled: res.data.cancelled ?? 0,
+          total: payload.total ?? 0,
+          active: payload.active ?? 0,
+          delivered: payload.delivered ?? 0,
+          cancelled: payload.cancelled ?? 0,
         });
       }
     } catch { /* ignore */ }

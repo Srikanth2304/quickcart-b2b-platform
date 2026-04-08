@@ -1,0 +1,1067 @@
+{
+  "Auth APIs": [
+    {
+      "domain": "Auth APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 01 - Step 1 - Login SUPER_ADMIN",
+      "method": "POST",
+      "endpoint": "/auth/login",
+      "rawUrl": "{{baseUrl}}/auth/login",
+      "query": [],
+      "requestBodyShape": [
+        "email",
+        "password"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Auth APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 05 - Step 5 - Register MANUFACTURER",
+      "method": "POST",
+      "endpoint": "/auth/register",
+      "rawUrl": "{{baseUrl}}/auth/register",
+      "query": [],
+      "requestBodyShape": [
+        "name",
+        "email",
+        "password",
+        "role"
+      ],
+      "responseShape": []
+    }
+  ],
+  "Product APIs": [
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 05 - Bulk Create Products",
+      "method": "POST",
+      "endpoint": "/products/bulk",
+      "rawUrl": "{{baseUrl}}/products/bulk",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "PRODUCT MANAGEMENT",
+      "name": "Get Product Facets",
+      "method": "GET",
+      "endpoint": "/products/facets",
+      "rawUrl": "{{baseUrl}}/products/facets",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "PRODUCT MANAGEMENT",
+      "name": "Get Product By Id",
+      "method": "GET",
+      "endpoint": "/products/{{productId}}",
+      "rawUrl": "{{baseUrl}}/products/{{productId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "PRODUCT MANAGEMENT",
+      "name": "Update Product",
+      "method": "PUT",
+      "endpoint": "/products/{{productId}}",
+      "rawUrl": "{{baseUrl}}/products/{{productId}}",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "PRODUCT MANAGEMENT",
+      "name": "Deactivate Product",
+      "method": "PATCH",
+      "endpoint": "/products/{{productId}}/deactivate",
+      "rawUrl": "{{baseUrl}}/products/{{productId}}/deactivate",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "List Reviews",
+      "method": "GET",
+      "endpoint": "/products/{{reviewProductId}}/reviews",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews?page=0&size=10",
+      "query": [
+        {
+          "key": "page",
+          "value": "0"
+        },
+        {
+          "key": "size",
+          "value": "10"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "Get My Review (/me)",
+      "method": "GET",
+      "endpoint": "/products/{{reviewProductId}}/reviews/me",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews/me",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "Get My Review (/my)",
+      "method": "GET",
+      "endpoint": "/products/{{reviewProductId}}/reviews/my",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews/my",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "Upsert My Review",
+      "method": "PUT",
+      "endpoint": "/products/{{reviewProductId}}/reviews/me",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews/me",
+      "query": [],
+      "requestBodyShape": [
+        "rating",
+        "comment"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "Create/Update Review (POST alias)",
+      "method": "POST",
+      "endpoint": "/products/{{reviewProductId}}/reviews",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews",
+      "query": [],
+      "requestBodyShape": [
+        "rating",
+        "comment"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "REVIEW MANAGEMENT",
+      "name": "Delete My Review",
+      "method": "DELETE",
+      "endpoint": "/products/{{reviewProductId}}/reviews/me",
+      "rawUrl": "{{baseUrl}}/products/{{reviewProductId}}/reviews/me",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Category APIs": [
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 02 - Bulk Create Categories",
+      "method": "POST",
+      "endpoint": "/categories/bulk",
+      "rawUrl": "{{baseUrl}}/categories/bulk",
+      "query": [],
+      "requestBodyShape": [
+        "categories",
+        "categories[].name",
+        "categories[].slug"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 03 - List Categories",
+      "method": "GET",
+      "endpoint": "/categories",
+      "rawUrl": "{{baseUrl}}/categories",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 04 - Get Category Tree",
+      "method": "GET",
+      "endpoint": "/categories/tree",
+      "rawUrl": "{{baseUrl}}/categories/tree",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Category APIs",
+      "folder": "CATEGORY MANAGEMENT",
+      "name": "Get Category By Id",
+      "method": "GET",
+      "endpoint": "/categories/{{categoryId}}",
+      "rawUrl": "{{baseUrl}}/categories/{{categoryId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Category APIs",
+      "folder": "CATEGORY MANAGEMENT",
+      "name": "Update Category",
+      "method": "PUT",
+      "endpoint": "/categories/{{categoryId}}",
+      "rawUrl": "{{baseUrl}}/categories/{{categoryId}}",
+      "query": [],
+      "requestBodyShape": [
+        "name",
+        "slug",
+        "parentId",
+        "displayOrder",
+        "isActive"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Category APIs",
+      "folder": "CATEGORY MANAGEMENT",
+      "name": "Deactivate Category",
+      "method": "PATCH",
+      "endpoint": "/categories/{{categoryId}}/deactivate",
+      "rawUrl": "{{baseUrl}}/categories/{{categoryId}}/deactivate",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Brand APIs": [
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 01 - Bulk Create Brands",
+      "method": "POST",
+      "endpoint": "/brands/bulk",
+      "rawUrl": "{{baseUrl}}/brands/bulk",
+      "query": [],
+      "requestBodyShape": [
+        "brands",
+        "brands[].name",
+        "brands[].slug"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Brand APIs",
+      "folder": "BRAND MANAGEMENT",
+      "name": "List Brands",
+      "method": "GET",
+      "endpoint": "/brands",
+      "rawUrl": "{{baseUrl}}/brands",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Brand APIs",
+      "folder": "BRAND MANAGEMENT",
+      "name": "Get Brand By Id",
+      "method": "GET",
+      "endpoint": "/brands/{{brandId}}",
+      "rawUrl": "{{baseUrl}}/brands/{{brandId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Brand APIs",
+      "folder": "BRAND MANAGEMENT",
+      "name": "Update Brand",
+      "method": "PUT",
+      "endpoint": "/brands/{{brandId}}",
+      "rawUrl": "{{baseUrl}}/brands/{{brandId}}",
+      "query": [],
+      "requestBodyShape": [
+        "name",
+        "slug",
+        "logoUrl",
+        "isActive"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Brand APIs",
+      "folder": "BRAND MANAGEMENT",
+      "name": "Deactivate Brand",
+      "method": "PATCH",
+      "endpoint": "/brands/{{brandId}}/deactivate",
+      "rawUrl": "{{baseUrl}}/brands/{{brandId}}/deactivate",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Cart APIs": [
+    {
+      "domain": "Cart APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 01 - Reserve Cart Item",
+      "method": "POST",
+      "endpoint": "/cart/reserve",
+      "rawUrl": "{{baseUrl}}/cart/reserve",
+      "query": [],
+      "requestBodyShape": [
+        "productId",
+        "variantId",
+        "quantity"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Cart APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 02 - Get Active Reservations",
+      "method": "GET",
+      "endpoint": "/cart/reservations",
+      "rawUrl": "{{baseUrl}}/cart/reservations",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Cart APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 03 - Cancel Reservation",
+      "method": "DELETE",
+      "endpoint": "/cart/reserve/{{reservationId}}",
+      "rawUrl": "{{baseUrl}}/cart/reserve/{{reservationId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Order APIs": [
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 01 - Place Order",
+      "method": "POST",
+      "endpoint": "/orders",
+      "rawUrl": "{{baseUrl}}/orders",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 04 - Accept Order (Manufacturer)",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/accept",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/accept",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 10 - Get Order Events",
+      "method": "GET",
+      "endpoint": "/orders/{{orderId}}/events",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/events",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 04 - Cancellation & Refund Branches",
+      "name": "Step 04 - Cancel Order",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/cancel",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/cancel",
+      "query": [],
+      "requestBodyShape": [
+        "reason"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 04 - Cancellation & Refund Branches",
+      "name": "Step 16 - Reject Order (Manufacturer)",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/reject",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/reject",
+      "query": [],
+      "requestBodyShape": [
+        "reason"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Get Order Summary",
+      "method": "GET",
+      "endpoint": "/orders/summary",
+      "rawUrl": "{{baseUrl}}/orders/summary",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Get Orders",
+      "method": "GET",
+      "endpoint": "/orders",
+      "rawUrl": "{{baseUrl}}/orders?page=0&size=10",
+      "query": [
+        {
+          "key": "page",
+          "value": "0"
+        },
+        {
+          "key": "size",
+          "value": "10"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Get Order By Id",
+      "method": "GET",
+      "endpoint": "/orders/{{orderId}}",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Get Invoice For Order",
+      "method": "GET",
+      "endpoint": "/orders/{{orderId}}/invoice",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/invoice",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Update Order Status",
+      "method": "PUT",
+      "endpoint": "/orders/{{orderId}}/status",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/status",
+      "query": [],
+      "requestBodyShape": [
+        "status"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Create Shipment",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/shipment",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/shipment",
+      "query": [],
+      "requestBodyShape": [
+        "carrier",
+        "trackingNumber",
+        "trackingUrl"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "ORDER MANAGEMENT",
+      "name": "Mark Delivered",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/deliver",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/deliver",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Shipment APIs": [
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 06 - Update Shipment Status - IN_TRANSIT",
+      "method": "PATCH",
+      "endpoint": "/shipments/{{shipmentId}}/status",
+      "rawUrl": "{{baseUrl}}/shipments/{{shipmentId}}/status",
+      "query": [],
+      "requestBodyShape": [
+        "status"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 09 - Get Shipment by Order (Retailer)",
+      "method": "GET",
+      "endpoint": "/shipments/{{orderId}}",
+      "rawUrl": "{{baseUrl}}/shipments/{{orderId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Return APIs": [
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 02 - Approve Return (Manufacturer)",
+      "method": "PATCH",
+      "endpoint": "/returns/{{returnId}}/approve",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}/approve",
+      "query": [],
+      "requestBodyShape": [
+        "note"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 03 - Receive Return (Manufacturer)",
+      "method": "PATCH",
+      "endpoint": "/returns/{{returnId}}/receive",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}/receive",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 04 - Inspect Return (Manufacturer)",
+      "method": "PATCH",
+      "endpoint": "/returns/{{returnId}}/inspect",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}/inspect",
+      "query": [],
+      "requestBodyShape": [
+        "inspectionStatus"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 05 - Complete Return (Manufacturer)",
+      "method": "PATCH",
+      "endpoint": "/returns/{{returnId}}/complete",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}/complete",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 06 - Get Return By Id (Retailer)",
+      "method": "GET",
+      "endpoint": "/returns/{{returnId}}",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "RETURN MANAGEMENT",
+      "name": "Reject Return (Manufacturer)",
+      "method": "PATCH",
+      "endpoint": "/returns/{{returnId}}/reject",
+      "rawUrl": "{{baseUrl}}/returns/{{returnId}}/reject",
+      "query": [],
+      "requestBodyShape": [
+        "note"
+      ],
+      "responseShape": []
+    }
+  ],
+  "Refund APIs": [
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 12 - Get Refund For Order",
+      "method": "GET",
+      "endpoint": "/orders/{{orderId}}/refund",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/refund",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 04 - Cancellation & Refund Branches",
+      "name": "Step 05 - Approve Refund",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/refund/approve",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/refund/approve",
+      "query": [],
+      "requestBodyShape": [
+        "note"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 04 - Cancellation & Refund Branches",
+      "name": "Step 11 - Reject Refund",
+      "method": "POST",
+      "endpoint": "/orders/{{orderId}}/refund/reject",
+      "rawUrl": "{{baseUrl}}/orders/{{orderId}}/refund/reject",
+      "query": [],
+      "requestBodyShape": [
+        "note"
+      ],
+      "responseShape": []
+    }
+  ],
+  "Payment APIs": [
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 02 - Create Razorpay Order",
+      "method": "POST",
+      "endpoint": "/payments/razorpay/order",
+      "rawUrl": "{{baseUrl}}/payments/razorpay/order",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 03 - Verify Razorpay Payment",
+      "method": "POST",
+      "endpoint": "/payments/razorpay/verify",
+      "rawUrl": "{{baseUrl}}/payments/razorpay/verify",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 11 - Get Payment For Order",
+      "method": "GET",
+      "endpoint": "/payments/order/{{orderId}}",
+      "rawUrl": "{{baseUrl}}/payments/order/{{orderId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Payment APIs",
+      "folder": "PAYMENT MANAGEMENT",
+      "name": "Get Razorpay Key",
+      "method": "GET",
+      "endpoint": "/payments/razorpay/key",
+      "rawUrl": "{{baseUrl}}/payments/razorpay/key",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Address APIs": [
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 08 - Create Address",
+      "method": "POST",
+      "endpoint": "/addresses",
+      "rawUrl": "{{baseUrl}}/addresses",
+      "query": [],
+      "requestBodyShape": [
+        "name",
+        "phone",
+        "addressLine1",
+        "city",
+        "state",
+        "pincode",
+        "isDefault"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Address APIs",
+      "folder": "ADDRESS MANAGEMENT",
+      "name": "Get Addresses",
+      "method": "GET",
+      "endpoint": "/addresses",
+      "rawUrl": "{{baseUrl}}/addresses",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Address APIs",
+      "folder": "ADDRESS MANAGEMENT",
+      "name": "Patch Address",
+      "method": "PATCH",
+      "endpoint": "/addresses/{{addressId}}",
+      "rawUrl": "{{baseUrl}}/addresses/{{addressId}}",
+      "query": [],
+      "requestBodyShape": [
+        "landmark"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Address APIs",
+      "folder": "ADDRESS MANAGEMENT",
+      "name": "Set Default Address",
+      "method": "PUT",
+      "endpoint": "/addresses/{{addressId}}/default",
+      "rawUrl": "{{baseUrl}}/addresses/{{addressId}}/default",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Address APIs",
+      "folder": "ADDRESS MANAGEMENT",
+      "name": "Delete Address",
+      "method": "DELETE",
+      "endpoint": "/addresses/{{addressId}}",
+      "rawUrl": "{{baseUrl}}/addresses/{{addressId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    }
+  ],
+  "Admin APIs": [
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 02 - Step 2 - Create ADMIN",
+      "method": "POST",
+      "endpoint": "/admin/users",
+      "rawUrl": "{{baseUrl}}/admin/users",
+      "query": [],
+      "requestBodyShape": [
+        "name",
+        "email",
+        "password",
+        "roles",
+        "roles[]",
+        "isActive"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 08 - Step 8 - Get Pending Users",
+      "method": "GET",
+      "endpoint": "/users/pending",
+      "rawUrl": "{{baseUrl}}/users/pending",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 09 - Step 9 - Approve MANUFACTURER",
+      "method": "PATCH",
+      "endpoint": "/users/{{manufacturerPendingUserId}}/approve",
+      "rawUrl": "{{baseUrl}}/users/{{manufacturerPendingUserId}}/approve",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 00 - Identity Bootstrap & Approvals",
+      "name": "Step 10 - Step 9 - Approve RETAILER",
+      "method": "PATCH",
+      "endpoint": "/users/{{retailerPendingUserId}}/approve",
+      "rawUrl": "{{baseUrl}}/users/{{retailerPendingUserId}}/approve",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 06 - Create Product",
+      "method": "POST",
+      "endpoint": "/products",
+      "rawUrl": "{{baseUrl}}/products",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "E2E SCENARIOS > 01 - Catalog & Product Setup",
+      "name": "Step 07 - Update Variant",
+      "method": "PATCH",
+      "endpoint": "/variants/{{variantId}}",
+      "rawUrl": "{{baseUrl}}/variants/{{variantId}}",
+      "query": [],
+      "requestBodyShape": [
+        "variantName",
+        "variantValue",
+        "price",
+        "stock"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Order APIs",
+      "folder": "E2E SCENARIOS > 02 - Happy Path (Order -> Payment -> Shipment -> Delivery)",
+      "name": "Step 05 - Create Shipment (Manufacturer)",
+      "method": "POST",
+      "endpoint": "/shipments",
+      "rawUrl": "{{baseUrl}}/shipments",
+      "query": [],
+      "requestBodyShape": [
+        "orderId",
+        "trackingNumber",
+        "carrierName",
+        "trackingUrl",
+        "estimatedDeliveryDate"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Return APIs",
+      "folder": "E2E SCENARIOS > 03 - Return Flow (Post-Delivery)",
+      "name": "Step 01 - Request Return (Retailer)",
+      "method": "POST",
+      "endpoint": "/returns",
+      "rawUrl": "{{baseUrl}}/returns",
+      "query": [],
+      "requestBodyShape": [
+        "orderId",
+        "orderItemId",
+        "returnedQuantity",
+        "condition",
+        "reason"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 04 - Create Inventory Batch",
+      "method": "POST",
+      "endpoint": "/inventory/batches",
+      "rawUrl": "{{baseUrl}}/inventory/batches",
+      "query": [],
+      "requestBodyShape": [
+        "productId",
+        "variantId",
+        "batchCode",
+        "quantity",
+        "expiryDate",
+        "supplierName"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 05 - List Inventory Batches",
+      "method": "GET",
+      "endpoint": "/inventory/batches",
+      "rawUrl": "{{baseUrl}}/inventory/batches?productId={{productId}}",
+      "query": [
+        {
+          "key": "productId",
+          "value": "{{productId}}"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 06 - Get Inventory Batch By Id",
+      "method": "GET",
+      "endpoint": "/inventory/batches/{{batchId}}",
+      "rawUrl": "{{baseUrl}}/inventory/batches/{{batchId}}",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 07 - Update Inventory Batch",
+      "method": "PATCH",
+      "endpoint": "/inventory/batches/{{batchId}}",
+      "rawUrl": "{{baseUrl}}/inventory/batches/{{batchId}}",
+      "query": [],
+      "requestBodyShape": [
+        "remainingQuantity",
+        "supplierName",
+        "isActive"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "E2E SCENARIOS > 05 - Inventory Reservation & Batch Operations",
+      "name": "Step 08 - Get Low Stock (Catalog Manager)",
+      "method": "GET",
+      "endpoint": "/inventory/low-stock",
+      "rawUrl": "{{baseUrl}}/inventory/low-stock?page=0&size=20",
+      "query": [
+        {
+          "key": "page",
+          "value": "0"
+        },
+        {
+          "key": "size",
+          "value": "20"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "USER APPROVAL",
+      "name": "Reject User",
+      "method": "PATCH",
+      "endpoint": "/users/{{targetUserId}}/reject",
+      "rawUrl": "{{baseUrl}}/users/{{targetUserId}}/reject",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "USER APPROVAL",
+      "name": "Deactivate User",
+      "method": "PATCH",
+      "endpoint": "/users/{{targetUserId}}/deactivate",
+      "rawUrl": "{{baseUrl}}/users/{{targetUserId}}/deactivate",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "USER APPROVAL",
+      "name": "Activate User",
+      "method": "PATCH",
+      "endpoint": "/users/{{targetUserId}}/activate",
+      "rawUrl": "{{baseUrl}}/users/{{targetUserId}}/activate",
+      "query": [],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Product APIs",
+      "folder": "PRODUCT MANAGEMENT",
+      "name": "Get Products",
+      "method": "GET",
+      "endpoint": "/products",
+      "rawUrl": "{{baseUrl}}/products?page=0&size=10",
+      "query": [
+        {
+          "key": "page",
+          "value": "0"
+        },
+        {
+          "key": "size",
+          "value": "10"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Payment APIs",
+      "folder": "PAYMENT MANAGEMENT",
+      "name": "Initiate Payment",
+      "method": "POST",
+      "endpoint": "/payments",
+      "rawUrl": "{{baseUrl}}/payments",
+      "query": [],
+      "requestBodyShape": [
+        "<non-json-or-template-body>"
+      ],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "INVOICE MANAGEMENT",
+      "name": "Get Retailer Invoices",
+      "method": "GET",
+      "endpoint": "/invoices",
+      "rawUrl": "{{baseUrl}}/invoices?page=0&size=10",
+      "query": [
+        {
+          "key": "page",
+          "value": "0"
+        },
+        {
+          "key": "size",
+          "value": "10"
+        }
+      ],
+      "requestBodyShape": [],
+      "responseShape": []
+    },
+    {
+      "domain": "Admin APIs",
+      "folder": "WEBHOOK",
+      "name": "Razorpay Webhook",
+      "method": "POST",
+      "endpoint": "/webhooks/razorpay",
+      "rawUrl": "{{baseUrl}}/webhooks/razorpay",
+      "query": [],
+      "requestBodyShape": [
+        "id",
+        "event",
+        "payload"
+      ],
+      "responseShape": []
+    }
+  ]
+}

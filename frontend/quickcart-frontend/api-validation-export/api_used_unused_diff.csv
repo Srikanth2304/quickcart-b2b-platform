@@ -1,0 +1,111 @@
+status,method,postmanEndpoint,frontendEndpoint,file,line,postmanName,postmanDomain
+USED,POST,/auth/login,/auth/login,src/auth/AuthContext.jsx,114,Step 01 - Step 1 - Login SUPER_ADMIN,Auth APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/ManufacturerOrderDetails.jsx,150,Get Order By Id,Order APIs
+USED,GET,/products/{{productId}},/products/${item.productId},src/pages/ManufacturerOrderDetails.jsx,162,Get Product By Id,Product APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/ManufacturerOrderDetails.jsx,182,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/ManufacturerOrderDetails.jsx,211,Get Order By Id,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/ManufacturerOrderDetails.jsx,216,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/ManufacturerOrderDetails.jsx,237,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/summary,/orders/summary,src/pages/ManufacturerOrders.jsx,137,Get Order Summary,Order APIs
+USED,GET,/orders,/orders,src/pages/ManufacturerOrders.jsx,174,Get Orders,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${o.id}/refund,src/pages/ManufacturerOrders.jsx,199,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/ManufacturerOrders.jsx,227,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/ManufacturerOrders.jsx,260,Get Order By Id,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/ManufacturerOrders.jsx,271,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/OrderCancel.jsx,56,Get Order By Id,Order APIs
+USED,GET,/products/{{productId}},/products/${item.productId},src/pages/OrderCancel.jsx,78,Get Product By Id,Product APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/OrderCancel.jsx,112,Step 04 - Cancel Order,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/OrderDetails.jsx,117,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/OrderDetails.jsx,137,Get Order By Id,Order APIs
+USED,GET,/products/{{productId}},/products/${item.productId},src/pages/OrderDetails.jsx,149,Get Product By Id,Product APIs
+USED,GET,/products/{{reviewProductId}}/reviews/my,/products/${item.productId}/reviews/my,src/pages/OrderDetails.jsx,173,Get My Review (/my),Product APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/OrderDetails.jsx,197,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/OrderDetails.jsx,242,Step 12 - Get Refund For Order,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/OrderDetails.jsx,275,Step 04 - Cancel Order,Order APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/OrderDetails.jsx,278,Get Order By Id,Order APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${orderId}/refund,src/pages/OrderDetails.jsx,287,Step 12 - Get Refund For Order,Order APIs
+USED,POST,/products/{{reviewProductId}}/reviews,/products/${productId}/reviews,src/pages/OrderDetails.jsx,309,Create/Update Review (POST alias),Product APIs
+USED,GET,/orders/{{orderId}},/orders/${orderId},src/pages/OrderSuccess.jsx,53,Get Order By Id,Order APIs
+USED,GET,/addresses,/addresses,src/pages/RetailerBag.jsx,78,Get Addresses,Address APIs
+USED,PATCH,/addresses/{{addressId}},/addresses/${editingAddressId},src/pages/RetailerBag.jsx,148,Patch Address,Address APIs
+USED,POST,/addresses,/addresses,src/pages/RetailerBag.jsx,164,Step 08 - Create Address,Product APIs
+USED,PUT,/addresses/{{addressId}}/default,/addresses/${id}/default,src/pages/RetailerBag.jsx,179,Set Default Address,Address APIs
+USED,DELETE,/addresses/{{addressId}},/addresses/${id},src/pages/RetailerBag.jsx,206,Delete Address,Address APIs
+USED,GET,/payments/razorpay/key,/payments/razorpay/key,src/pages/RetailerBag.jsx,300,Get Razorpay Key,Payment APIs
+USED,POST,/orders,/orders,src/pages/RetailerBag.jsx,326,Step 01 - Place Order,Order APIs
+USED,POST,/payments/razorpay/order,/payments/razorpay/order,src/pages/RetailerBag.jsx,349,Step 02 - Create Razorpay Order,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/RetailerBag.jsx,356,Step 04 - Cancel Order,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/RetailerBag.jsx,383,Step 04 - Cancel Order,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/RetailerBag.jsx,391,Step 04 - Cancel Order,Order APIs
+USED,POST,/payments/razorpay/verify,/payments/razorpay/verify,src/pages/RetailerBag.jsx,410,Step 03 - Verify Razorpay Payment,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/RetailerBag.jsx,443,Step 04 - Cancel Order,Order APIs
+USED,POST,/orders/{{orderId}}/cancel,/orders/${orderId}/cancel,src/pages/RetailerBag.jsx,465,Step 04 - Cancel Order,Order APIs
+USED,GET,/orders/summary,/orders/summary,src/pages/RetailerOrders.jsx,144,Get Order Summary,Order APIs
+USED,GET,/orders,/orders,src/pages/RetailerOrders.jsx,182,Get Orders,Order APIs
+USED,GET,/products/{{productId}},/products/${pid},src/pages/RetailerOrders.jsx,207,Get Product By Id,Product APIs
+USED,GET,/orders/{{orderId}}/refund,/orders/${o.id}/refund,src/pages/RetailerOrders.jsx,236,Step 12 - Get Refund For Order,Order APIs
+USED,GET,/orders/summary,/orders/summary,src/pages/RetailerOrders.jsx,275,Get Order Summary,Order APIs
+USED,GET,/products/{{productId}},/products/${id},src/pages/RetailerProductDetails.jsx,59,Get Product By Id,Product APIs
+USED,GET,/products,/products,src/pages/RetailerProducts.jsx,164,Get Products,Product APIs
+USED,GET,/products/facets,/products/facets,src/pages/RetailerProducts.jsx,290,Get Product Facets,Product APIs
+UNUSED_POSTMAN,POST,/admin/users,,,,Step 02 - Step 2 - Create ADMIN,Admin APIs
+UNUSED_POSTMAN,POST,/auth/register,,,,Step 05 - Step 5 - Register MANUFACTURER,Auth APIs
+UNUSED_POSTMAN,GET,/users/pending,,,,Step 08 - Step 8 - Get Pending Users,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{manufacturerPendingUserId}}/approve,,,,Step 09 - Step 9 - Approve MANUFACTURER,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{retailerPendingUserId}}/approve,,,,Step 10 - Step 9 - Approve RETAILER,Admin APIs
+UNUSED_POSTMAN,POST,/brands/bulk,,,,Step 01 - Bulk Create Brands,Product APIs
+UNUSED_POSTMAN,POST,/categories/bulk,,,,Step 02 - Bulk Create Categories,Product APIs
+UNUSED_POSTMAN,GET,/categories,,,,Step 03 - List Categories,Product APIs
+UNUSED_POSTMAN,GET,/categories/tree,,,,Step 04 - Get Category Tree,Product APIs
+UNUSED_POSTMAN,POST,/products/bulk,,,,Step 05 - Bulk Create Products,Product APIs
+UNUSED_POSTMAN,POST,/products,,,,Step 06 - Create Product,Product APIs
+UNUSED_POSTMAN,PATCH,/variants/{{variantId}},,,,Step 07 - Update Variant,Product APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/accept,,,,Step 04 - Accept Order (Manufacturer),Order APIs
+UNUSED_POSTMAN,POST,/shipments,,,,Step 05 - Create Shipment (Manufacturer),Order APIs
+UNUSED_POSTMAN,PATCH,/shipments/{{shipmentId}}/status,,,,Step 06 - Update Shipment Status - IN_TRANSIT,Order APIs
+UNUSED_POSTMAN,GET,/shipments/{{orderId}},,,,Step 09 - Get Shipment by Order (Retailer),Order APIs
+UNUSED_POSTMAN,GET,/orders/{{orderId}}/events,,,,Step 10 - Get Order Events,Order APIs
+UNUSED_POSTMAN,GET,/payments/order/{{orderId}},,,,Step 11 - Get Payment For Order,Order APIs
+UNUSED_POSTMAN,POST,/returns,,,,Step 01 - Request Return (Retailer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/approve,,,,Step 02 - Approve Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/receive,,,,Step 03 - Receive Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/inspect,,,,Step 04 - Inspect Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/complete,,,,Step 05 - Complete Return (Manufacturer),Return APIs
+UNUSED_POSTMAN,GET,/returns/{{returnId}},,,,Step 06 - Get Return By Id (Retailer),Return APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/refund/approve,,,,Step 05 - Approve Refund,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/refund/reject,,,,Step 11 - Reject Refund,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/reject,,,,Step 16 - Reject Order (Manufacturer),Order APIs
+UNUSED_POSTMAN,POST,/cart/reserve,,,,Step 01 - Reserve Cart Item,Cart APIs
+UNUSED_POSTMAN,GET,/cart/reservations,,,,Step 02 - Get Active Reservations,Cart APIs
+UNUSED_POSTMAN,DELETE,/cart/reserve/{{reservationId}},,,,Step 03 - Cancel Reservation,Cart APIs
+UNUSED_POSTMAN,POST,/inventory/batches,,,,Step 04 - Create Inventory Batch,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/batches,,,,Step 05 - List Inventory Batches,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/batches/{{batchId}},,,,Step 06 - Get Inventory Batch By Id,Admin APIs
+UNUSED_POSTMAN,PATCH,/inventory/batches/{{batchId}},,,,Step 07 - Update Inventory Batch,Admin APIs
+UNUSED_POSTMAN,GET,/inventory/low-stock,,,,Step 08 - Get Low Stock (Catalog Manager),Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/reject,,,,Reject User,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/deactivate,,,,Deactivate User,Admin APIs
+UNUSED_POSTMAN,PATCH,/users/{{targetUserId}}/activate,,,,Activate User,Admin APIs
+UNUSED_POSTMAN,GET,/categories/{{categoryId}},,,,Get Category By Id,Category APIs
+UNUSED_POSTMAN,PUT,/categories/{{categoryId}},,,,Update Category,Category APIs
+UNUSED_POSTMAN,PATCH,/categories/{{categoryId}}/deactivate,,,,Deactivate Category,Category APIs
+UNUSED_POSTMAN,GET,/brands,,,,List Brands,Brand APIs
+UNUSED_POSTMAN,GET,/brands/{{brandId}},,,,Get Brand By Id,Brand APIs
+UNUSED_POSTMAN,PUT,/brands/{{brandId}},,,,Update Brand,Brand APIs
+UNUSED_POSTMAN,PATCH,/brands/{{brandId}}/deactivate,,,,Deactivate Brand,Brand APIs
+UNUSED_POSTMAN,PUT,/products/{{productId}},,,,Update Product,Product APIs
+UNUSED_POSTMAN,PATCH,/products/{{productId}}/deactivate,,,,Deactivate Product,Product APIs
+UNUSED_POSTMAN,GET,/orders/{{orderId}}/invoice,,,,Get Invoice For Order,Order APIs
+UNUSED_POSTMAN,PUT,/orders/{{orderId}}/status,,,,Update Order Status,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/shipment,,,,Create Shipment,Order APIs
+UNUSED_POSTMAN,POST,/orders/{{orderId}}/deliver,,,,Mark Delivered,Order APIs
+UNUSED_POSTMAN,POST,/payments,,,,Initiate Payment,Payment APIs
+UNUSED_POSTMAN,GET,/products/{{reviewProductId}}/reviews,,,,List Reviews,Product APIs
+UNUSED_POSTMAN,GET,/products/{{reviewProductId}}/reviews/me,,,,Get My Review (/me),Product APIs
+UNUSED_POSTMAN,PUT,/products/{{reviewProductId}}/reviews/me,,,,Upsert My Review,Product APIs
+UNUSED_POSTMAN,DELETE,/products/{{reviewProductId}}/reviews/me,,,,Delete My Review,Product APIs
+UNUSED_POSTMAN,GET,/invoices,,,,Get Retailer Invoices,Admin APIs
+UNUSED_POSTMAN,POST,/webhooks/razorpay,,,,Razorpay Webhook,Admin APIs
+UNUSED_POSTMAN,PATCH,/returns/{{returnId}}/reject,,,,Reject Return (Manufacturer),Return APIs
+UNMATCHED_FRONTEND,POST,,/orders/${orderId}/refund/${action},src/pages/ManufacturerOrderDetails.jsx,235,,
+UNMATCHED_FRONTEND,POST,,/orders/${orderId}/refund/${action},src/pages/ManufacturerOrders.jsx,224,,

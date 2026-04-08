@@ -6,6 +6,12 @@ import { showToast } from "../utils/notify";
 import Loader from "../components/Loader";
 import "./RetailerProductDetails.css";
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
 function formatCurrency(value) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return "-";
   return Number(value).toLocaleString();
@@ -52,9 +58,11 @@ export default function RetailerProductDetails() {
       try {
         const response = await api.get(`/products/${id}`);
         if (!isMounted) return;
-        setProduct(response.data || null);
+        console.log("[RetailerProductDetails] /products/:id payload", response.data);
+        setProduct(unwrapApiData(response.data) || null);
       } catch (err) {
         if (!isMounted) return;
+        console.error("[RetailerProductDetails] Failed to load /products/:id", err);
         try {
           const cached = sessionStorage.getItem(`retailer-product-${id}`);
           if (cached) {

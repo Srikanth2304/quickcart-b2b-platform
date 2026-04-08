@@ -1,0 +1,52 @@
+file,line,component,functionName,method,endpoint,normalizedEndpoint,code
+src/auth/AuthContext.jsx,114,AuthContext,clearStorage,POST,/auth/login,/auth/login,"const res = await api.post(""/auth/login"", { email, password });"
+src/pages/ManufacturerOrderDetails.jsx,150,ManufacturerOrderDetails,fetchOrder,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/ManufacturerOrderDetails.jsx,162,ManufacturerOrderDetails,fetchOrder,GET,/products/${item.productId},/products/{var},const pRes = await api.get(`/products/${item.productId}`);
+src/pages/ManufacturerOrderDetails.jsx,182,ManufacturerOrderDetails,fetchOrder,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/ManufacturerOrderDetails.jsx,211,ManufacturerOrderDetails,handleLifecycleAction,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/ManufacturerOrderDetails.jsx,216,ManufacturerOrderDetails,handleLifecycleAction,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/ManufacturerOrderDetails.jsx,235,ManufacturerOrderDetails,handleRefundAction,POST,/orders/${orderId}/refund/${action},/orders/{var}/refund/{var},await api.post(`/orders/${orderId}/refund/${action}`);
+src/pages/ManufacturerOrderDetails.jsx,237,ManufacturerOrderDetails,handleRefundAction,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/ManufacturerOrders.jsx,137,ManufacturerOrders,fetchSummary,GET,/orders/summary,/orders/summary,"const res = await api.get(""/orders/summary"");"
+src/pages/ManufacturerOrders.jsx,174,ManufacturerOrders,fetchOrders,GET,/orders,/orders,"const res = await api.get(""/orders"", { params });"
+src/pages/ManufacturerOrders.jsx,199,ManufacturerOrders,fetchOrders,GET,/orders/${o.id}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${o.id}/refund`);
+src/pages/ManufacturerOrders.jsx,224,ManufacturerOrders,handleRefundAction,POST,/orders/${orderId}/refund/${action},/orders/{var}/refund/{var},await api.post(`/orders/${orderId}/refund/${action}`);
+src/pages/ManufacturerOrders.jsx,227,ManufacturerOrders,handleRefundAction,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/ManufacturerOrders.jsx,260,ManufacturerOrders,handleLifecycleAction,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/ManufacturerOrders.jsx,271,ManufacturerOrders,handleLifecycleAction,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/OrderCancel.jsx,56,OrderCancel,fetchOrder,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/OrderCancel.jsx,78,OrderCancel,fetchOrder,GET,/products/${item.productId},/products/{var},const pRes = await api.get(`/products/${item.productId}`);
+src/pages/OrderCancel.jsx,112,OrderCancel,handleSubmitCancellation,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,await api.post(`/orders/${orderId}/cancel`);
+src/pages/OrderDetails.jsx,117,OrderDetails,refreshRefund,GET,/orders/${orderId}/refund,/orders/{var}/refund,const res = await api.get(`/orders/${orderId}/refund`);
+src/pages/OrderDetails.jsx,137,OrderDetails,fetchOrder,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/OrderDetails.jsx,149,OrderDetails,fetchOrder,GET,/products/${item.productId},/products/{var},const pRes = await api.get(`/products/${item.productId}`);
+src/pages/OrderDetails.jsx,173,OrderDetails,fetchOrder,GET,/products/${item.productId}/reviews/my,/products/{var}/reviews/my,"const rRes = await api.get(`/products/${item.productId}/reviews/my`, {"
+src/pages/OrderDetails.jsx,197,OrderDetails,fetchOrder,GET,/orders/${orderId}/refund,/orders/{var}/refund,const refundRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/OrderDetails.jsx,242,OrderDetails,poll,GET,/orders/${orderId}/refund,/orders/{var}/refund,"const res = await api.get(`/orders/${orderId}/refund`, {"
+src/pages/OrderDetails.jsx,275,OrderDetails,handleCancelOrder,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,await api.post(`/orders/${orderId}/cancel`);
+src/pages/OrderDetails.jsx,278,OrderDetails,handleCancelOrder,GET,/orders/${orderId},/orders/{var},const res = await api.get(`/orders/${orderId}`);
+src/pages/OrderDetails.jsx,287,OrderDetails,handleCancelOrder,GET,/orders/${orderId}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${orderId}/refund`);
+src/pages/OrderDetails.jsx,309,OrderDetails,handleSubmitReview,POST,/products/${productId}/reviews,/products/{var}/reviews,"await api.post(`/products/${productId}/reviews`, {"
+src/pages/OrderSuccess.jsx,53,OrderSuccess,fetchOrder,GET,/orders/${orderId},/orders/{var},"const response = await api.get(`/orders/${orderId}`, {"
+src/pages/RetailerBag.jsx,78,RetailerBag,refreshAddresses,GET,/addresses,/addresses,"const response = await api.get(""/addresses"");"
+src/pages/RetailerBag.jsx,148,RetailerBag,pick,PATCH,/addresses/${editingAddressId},/addresses/{var},"await api.patch(`/addresses/${editingAddressId}`, payload);"
+src/pages/RetailerBag.jsx,164,RetailerBag,pick,POST,/addresses,/addresses,"await api.post(""/addresses"", payload);"
+src/pages/RetailerBag.jsx,179,RetailerBag,handleMakeDefault,PUT,/addresses/${id}/default,/addresses/{var}/default,await api.put(`/addresses/${id}/default`);
+src/pages/RetailerBag.jsx,206,RetailerBag,handleDeleteAddress,DELETE,/addresses/${id},/addresses/{var},await api.delete(`/addresses/${id}`);
+src/pages/RetailerBag.jsx,300,RetailerBag,fetchRazorpayKey,GET,/payments/razorpay/key,/payments/razorpay/key,"const response = await api.get(""/payments/razorpay/key"");"
+src/pages/RetailerBag.jsx,326,RetailerBag,handlePlaceOrder,POST,/orders,/orders,"const orderResponse = await api.post(""/orders"", payload);"
+src/pages/RetailerBag.jsx,349,RetailerBag,handlePlaceOrder,POST,/payments/razorpay/order,/payments/razorpay/order,"const razorpayResponse = await api.post(""/payments/razorpay/order"", { orderId });"
+src/pages/RetailerBag.jsx,356,RetailerBag,handlePlaceOrder,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+src/pages/RetailerBag.jsx,383,RetailerBag,loadRazorpaySdk,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+src/pages/RetailerBag.jsx,391,RetailerBag,loadRazorpaySdk,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+src/pages/RetailerBag.jsx,410,RetailerBag,loadRazorpaySdk,POST,/payments/razorpay/verify,/payments/razorpay/verify,"await api.post(""/payments/razorpay/verify"", {"
+src/pages/RetailerBag.jsx,443,RetailerBag,loadRazorpaySdk,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,await api.post(`/orders/${orderId}/cancel`);
+src/pages/RetailerBag.jsx,465,RetailerBag,loadRazorpaySdk,POST,/orders/${orderId}/cancel,/orders/{var}/cancel,try { await api.post(`/orders/${orderId}/cancel`); } catch { /* backend TTL will clean up */ }
+src/pages/RetailerOrders.jsx,144,RetailerOrders,fetchSummary,GET,/orders/summary,/orders/summary,"const res = await api.get(""/orders/summary"");"
+src/pages/RetailerOrders.jsx,182,RetailerOrders,fetchSummary,GET,/orders,/orders,"const res = await api.get(""/orders"", { params });"
+src/pages/RetailerOrders.jsx,207,RetailerOrders,fetchSummary,GET,/products/${pid},/products/{var},const pRes = await api.get(`/products/${pid}`);
+src/pages/RetailerOrders.jsx,236,RetailerOrders,fetchSummary,GET,/orders/${o.id}/refund,/orders/{var}/refund,const rRes = await api.get(`/orders/${o.id}/refund`);
+src/pages/RetailerOrders.jsx,275,RetailerOrders,refreshSummary,GET,/orders/summary,/orders/summary,"const res = await api.get(""/orders/summary"");"
+src/pages/RetailerProductDetails.jsx,59,RetailerProductDetails,fetchProduct,GET,/products/${id},/products/{var},const response = await api.get(`/products/${id}`);
+src/pages/RetailerProducts.jsx,164,RetailerProducts,fetchProducts,GET,/products,/products,"const response = await api.get(""/products"", { params });"
+src/pages/RetailerProducts.jsx,290,RetailerProducts,fetchFacets,GET,/products/facets,/products/facets,"const response = await api.get(""/products/facets"", { params });"

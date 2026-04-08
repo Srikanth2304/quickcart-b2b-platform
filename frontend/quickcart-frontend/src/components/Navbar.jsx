@@ -25,17 +25,15 @@ export default function Navbar() {
   const getNavLinks = () => {
     if (user.role === "MANUFACTURER") {
       return [
-        { label: "Dashboard", path: "/manufacturer" },
+        { label: "Dashboard", path: "/manufacturer/dashboard" },
         { label: "Products", path: "/manufacturer/products" },
         { label: "Orders", path: "/manufacturer/orders" },
         { label: "Payments", path: "/manufacturer/payments" },
       ];
     } else if (user.role === "RETAILER") {
       return [
-        { label: "Dashboard", path: "/retailer" },
         { label: "Products", path: "/retailer/products" },
         { label: "Orders", path: "/retailer/orders" },
-        { label: "Invoices", path: "/retailer/invoices" },
       ];
     }
     return [];
@@ -67,9 +65,9 @@ export default function Navbar() {
           className="logo"
           onClick={() => {
             if (user.role === "MANUFACTURER") {
-              navigate("/manufacturer");
+              navigate("/manufacturer/dashboard");
             } else if (user.role === "RETAILER") {
-              navigate("/retailer");
+              navigate("/retailer/dashboard");
             }
           }}
         >

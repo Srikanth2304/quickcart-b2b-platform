@@ -4,6 +4,31 @@ import { showToast } from "../utils/notify";
 import Loader from "../components/Loader";
 import "./RetailerProducts.css";
 
+function unwrapApiData(responseData) {
+  if (!responseData || typeof responseData !== "object") return responseData;
+  if (responseData.data !== undefined) return responseData.data;
+  return responseData;
+}
+
+function extractPagePayload(responseData) {
+  const payload = unwrapApiData(responseData);
+  if (!payload || typeof payload !== "object") {
+    return { content: [], totalPages: 1, totalElements: 0 };
+  }
+
+  const content = Array.isArray(payload.content)
+    ? payload.content
+    : Array.isArray(payload.items)
+    ? payload.items
+    : [];
+
+  return {
+    content,
+    totalPages: Number(payload.totalPages) || 1,
+    totalElements: Number(payload.totalElements) || content.length || 0,
+  };
+}
+
 export default function RetailerProducts() {
   const [products, setProducts] = useState([]);
   const [page, setPage] = useState(0);
@@ -138,11 +163,12 @@ export default function RetailerProducts() {
 
         const response = await api.get("/products", { params });
         if (!isMounted) return;
-        const data = response.data || {};
-        const content = data.content || [];
+        const pagePayload = extractPagePayload(response.data);
+        const content = pagePayload.content;
+        console.log("[RetailerProducts] /products payload", response.data);
         setProducts(content);
-        setTotalPages(data.totalPages || 1);
-        setTotalElements(data.totalElements || 0);
+        setTotalPages(pagePayload.totalPages);
+        setTotalElements(pagePayload.totalElements);
 
         const nextCategoryCounts = new Map();
         const nextBrandCounts = new Map();
@@ -190,6 +216,7 @@ export default function RetailerProducts() {
         });
       } catch (err) {
         if (!isMounted) return;
+        console.error("[RetailerProducts] Failed to load /products", err);
         setError("Failed to load products. Please try again.");
       } finally {
         if (isMounted) setLoading(false);
@@ -262,7 +289,8 @@ export default function RetailerProducts() {
 
         const response = await api.get("/products/facets", { params });
         if (!isMounted) return;
-        const facets = response.data || {};
+        const facets = unwrapApiData(response.data) || {};
+        console.log("[RetailerProducts] /products/facets payload", response.data);
         const rawCategories = Array.isArray(facets.categories) ? facets.categories : [];
         const rawBrands = Array.isArray(facets.brands) ? facets.brands : [];
 
@@ -295,6 +323,7 @@ export default function RetailerProducts() {
         setBrandOptions(normalizedBrands);
       } catch (err) {
         if (!isMounted) return;
+        console.error("[RetailerProducts] Failed to load /products/facets", err);
       } finally {
         if (isMounted) setFacetsLoading(false);
       }
